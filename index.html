@@ -1,0 +1,1275 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="画像とキャッチコピーに100種以上のデジタルエフェクトを重ねて、CM動画をブラウザだけで作れるツール。">
+<meta name="theme-color" content="#121419">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23121419'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%23e2583c'/%3E%3C/svg%3E">
+<title>刹那 CMスタジオ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=DotGothic16&family=Share+Tech+Mono&family=Shippori+Mincho+B1:wght@800&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap">
+<style>html{-webkit-text-size-adjust:100%}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>
+/* Layout: editing-suite split — preview stage left, effect rack right; stacks on phones. Single dark look by choice. */
+:root{
+  --ink:#121419;--panel:#1a1d24;--panel2:#20242d;--line:#2b2f3a;--fg:#ebe7de;--muted:#9497a3;--brass:#d3a34f;--rec:#e2583c;
+  --display:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+  --ui:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+  --mono:"Share Tech Mono",ui-monospace,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--ink);color:var(--fg)}
+body{font-family:var(--ui);font-size:14px;line-height:1.6;padding:0 16px;min-height:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-block:20px 16px;border-bottom:1px solid var(--line);max-width:1320px;margin:0 auto}
+.brand{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.brand h1{font-family:var(--display);font-weight:800;font-size:28px;letter-spacing:.12em;margin:0;line-height:1}
+.brand span{color:var(--muted);font-size:12px;letter-spacing:.18em;text-transform:uppercase}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:7px 12px;cursor:pointer;transition:border-color .15s}
+.btn:hover{border-color:var(--muted)}
+.btn-rec{background:var(--rec);border-color:var(--rec);color:#fff;font-weight:700;display:inline-flex;align-items:center;gap:8px;padding:10px 18px}
+.btn-rec:hover{border-color:#fff}
+.btn-rec::before{content:"";width:9px;height:9px;border-radius:50%;background:#fff}
+.btn-rec:disabled{opacity:.55;cursor:progress}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:24px;max-width:1320px;margin:0 auto;padding-block:20px 48px;align-items:start}
+@media (max-width:920px){.layout{grid-template-columns:minmax(0,1fr)}}
+.stage{min-width:0;display:flex;flex-direction:column;gap:12px;position:sticky;top:env(safe-area-inset-top,0px)}
+@media (max-width:920px){.stage{position:static}}
+.screen{background:#07080a;border:1px solid var(--line);border-radius:8px;display:flex;justify-content:center;align-items:center;padding:14px;min-height:240px}
+#cv{display:block;max-width:100%;max-height:min(66vh,740px);width:auto;height:auto;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+.transport{display:flex;align-items:center;gap:12px}
+.play{width:40px;height:40px;border-radius:50%;padding:0;display:grid;place-items:center;flex:none}
+.play svg{width:16px;height:16px;fill:var(--fg)}
+#scrub{flex:1;min-width:0;accent-color:var(--brass)}
+.time{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12px;white-space:nowrap}
+.timeline{display:flex;height:6px;border-radius:3px;overflow:hidden;gap:2px}
+.timeline i{display:block;background:var(--line)}
+.timeline i.on{background:var(--brass)}
+.active{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:30px}
+.active .lbl{font-size:11px;letter-spacing:.16em;color:var(--muted);margin-right:4px}
+.chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:2px 4px 2px 10px;font-size:12px}
+.chip.tr{border-color:#4b4130}
+.chip button{border:0;background:transparent;color:var(--muted);cursor:pointer;width:20px;height:20px;border-radius:50%;padding:0;line-height:1}
+.chip button:hover{color:var(--fg);background:var(--line)}
+.result{border:1px solid var(--brass);border-radius:8px;padding:16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:var(--panel)}
+.result video{max-height:180px;max-width:100%;border-radius:4px;background:#000}
+.result .msg{flex:1;min-width:200px;display:flex;flex-direction:column;gap:8px}
+.result .msg p{margin:0;color:var(--muted);font-size:13px}
+.progress{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.progress b{display:block;height:100%;width:0;background:var(--rec)}
+.note{color:var(--muted);font-size:12px;margin:0}
+.warn{color:#f0b46a;font-size:12px;margin:0}
+
+.rail{display:flex;flex-direction:column;gap:14px;min-width:0}
+.tabs{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.tabs button{flex:1;border:0;background:transparent;padding:9px;cursor:pointer;color:var(--muted);font-weight:700}
+.tabs button[aria-selected="true"]{background:var(--panel2);color:var(--fg);box-shadow:inset 0 -2px 0 var(--brass)}
+.pane{display:flex;flex-direction:column;gap:16px}
+.sec{display:flex;flex-direction:column;gap:10px}
+.sec h2{font-size:11px;letter-spacing:.2em;color:var(--muted);margin:0;font-weight:500;display:flex;justify-content:space-between;align-items:center}
+.fxbar{display:flex;gap:6px;align-items:center}
+.fxbar input{flex:1;min-width:0}
+.ctl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px}
+.ctl label{color:var(--muted);font-size:12px}
+.ctl .chk{grid-column:1/-1;display:flex;gap:8px;align-items:center;color:var(--fg);font-size:13px}
+.ctl input[type=range]{accent-color:var(--brass);width:100%}
+select,input[type=text],input[type=search],textarea{background:var(--ink);border:1px solid var(--line);border-radius:5px;padding:7px 9px;width:100%}
+textarea{resize:vertical;min-height:56px;line-height:1.5}
+details.cat{border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+details.cat summary{list-style:none;cursor:pointer;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:13px}
+details.cat summary::-webkit-details-marker{display:none}
+details.cat summary::after{content:"＋";color:var(--muted);font-weight:400}
+details.cat[open] summary::after{content:"－"}
+details.cat summary .cnt{margin-left:auto;margin-right:10px;font-size:11px;color:var(--brass);font-weight:500;font-variant-numeric:tabular-nums}
+.rows{display:flex;flex-direction:column;padding:0 6px 8px}
+.fx{display:grid;grid-template-columns:34px minmax(0,1fr) 92px;align-items:center;gap:8px;padding:5px 6px;border-radius:5px}
+.fx:hover{background:var(--panel2)}
+[hidden]{display:none!important}
+.inh{display:inline-block;margin-left:6px;font-size:10px;color:var(--brass);border:1px solid #4b4130;border-radius:3px;padding:0 4px;vertical-align:1px}
+.target{display:flex;flex-direction:column;gap:8px;border:1px solid var(--brass);border-radius:6px;padding:10px 12px;background:var(--panel)}
+.target label{font-size:12px;color:var(--muted)}
+.target select{font-weight:700}
+.target .chk{display:flex;gap:8px;align-items:center;color:var(--fg);font-size:13px}
+.fxbtn{border:1px solid var(--line);background:transparent;border-radius:4px;height:26px;padding:0 8px;cursor:pointer;color:var(--muted);font-size:11px}
+.fxbtn:hover{color:var(--fg);border-color:var(--muted)}
+.fxbtn.has{color:var(--brass);border-color:#4b4130}
+.fx label{font-size:13px;cursor:pointer;line-height:1.35}
+.fx input[type=range]{width:92px;accent-color:var(--brass)}
+.fx input[type=range]:disabled{opacity:.25}
+.sw{appearance:none;-webkit-appearance:none;width:30px;height:18px;border-radius:9px;background:var(--line);position:relative;cursor:pointer;margin:0;transition:background .15s}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--muted);transition:transform .15s,background .15s}
+.sw:checked{background:var(--brass)}
+.sw:checked::after{transform:translateX(12px);background:#1a1408}
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{flex:1;border:0;background:transparent;padding:8px 4px;cursor:pointer;font-variant-numeric:tabular-nums}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--brass);color:#1a1408;font-weight:700}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row label{color:var(--muted);font-size:12px}
+.scenes{display:flex;flex-direction:column;gap:10px;list-style:none;margin:0;padding:0}
+.scene{border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:10px;display:grid;grid-template-columns:72px minmax(0,1fr);gap:10px}
+.scene.cur{border-color:var(--brass)}
+.thumb{width:72px;height:72px;border-radius:4px;background:var(--ink) center/cover no-repeat;border:1px dashed var(--line);position:relative;cursor:pointer;display:grid;place-items:center;color:var(--muted);font-size:11px;overflow:hidden}
+.thumb input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.thumb em{position:absolute;bottom:0;left:0;right:0;font-style:normal;font-size:10px;background:rgba(0,0,0,.6);text-align:center;color:var(--fg)}
+.scene-body{display:flex;flex-direction:column;gap:6px;min-width:0}
+.scene-head{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.icons{display:flex;gap:4px}
+.icons button{border:1px solid var(--line);background:transparent;border-radius:4px;width:26px;height:26px;padding:0;cursor:pointer;color:var(--muted);line-height:1}
+.icons button:hover{color:var(--fg);border-color:var(--muted)}
+.dur{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.dur input{flex:1;accent-color:var(--brass);min-width:0}
+.dur output{font-variant-numeric:tabular-nums;width:3.2em;text-align:right}
+.add{border:1px dashed var(--line);background:transparent;border-radius:6px;padding:10px;cursor:pointer;color:var(--muted)}
+.add:hover{color:var(--fg);border-color:var(--muted)}
+.file{display:flex;gap:8px;align-items:center}
+.file span{color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand"><h1>刹那</h1><span>CM Studio · Effect Rack</span></div>
+  <button class="btn btn-rec" id="exportBtn" type="button">動画を書き出す</button>
+</header>
+
+<main class="layout">
+  <section class="stage" aria-label="プレビュー">
+    <div class="screen"><canvas id="cv" width="1080" height="1920"></canvas></div>
+    <div class="active" id="activeFx" aria-live="polite"></div>
+    <div class="timeline" id="timeline" aria-hidden="true"></div>
+    <div class="transport">
+      <button class="btn play" id="playBtn" type="button" aria-label="再生"><svg viewBox="0 0 16 16" id="playIcon"><path d="M3 1.5v13l11-6.5z"/></svg></button>
+      <input type="range" id="scrub" min="0" max="10" step="0.01" value="0" aria-label="再生位置">
+      <span class="time" id="time">0.0 / 0.0 秒</span>
+    </div>
+    <p class="warn" id="glWarn" hidden></p>
+    <div class="result" id="result" hidden>
+      <video id="resultVideo" controls playsinline hidden></video>
+      <div class="msg">
+        <strong id="resultTitle">書き出し中…</strong>
+        <div class="progress" id="progWrap"><b id="prog"></b></div>
+        <p id="resultText"></p>
+        <div class="row"><button class="btn" id="saveBtn" type="button" hidden>動画を保存</button><button class="btn" id="closeResult" type="button" hidden>閉じる</button></div>
+      </div>
+    </div>
+    <p class="note">画像は端末内だけで処理されます。最初の画像と文章はサンプルです。残像系のエフェクトは再生中に効果が出ます。</p>
+  </section>
+
+  <aside class="rail">
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tabFx" aria-selected="true" aria-controls="paneFx">エフェクト</button>
+      <button type="button" role="tab" id="tabAsset" aria-selected="false" aria-controls="paneAsset">素材・文字</button>
+    </div>
+
+    <div class="pane" id="paneFx" role="tabpanel" aria-labelledby="tabFx">
+      <div class="target">
+        <label for="fxTarget">エフェクトをかける対象</label>
+        <select id="fxTarget"></select>
+        <label class="chk" id="useGlobalRow" hidden><input type="checkbox" id="useGlobal" checked> 全体のエフェクトもこの場面に使う</label>
+        <p class="note" id="targetHint"></p>
+      </div>
+      <div class="fxbar">
+        <input type="search" id="fxSearch" placeholder="エフェクトを検索" aria-label="エフェクトを検索">
+        <button class="btn" type="button" id="fxRandom">ランダム</button>
+        <button class="btn" type="button" id="fxClear">すべてオフ</button>
+      </div>
+      <div class="ctl">
+        <label for="textStyle">文字の動き</label>
+        <select id="textStyle">
+          <option value="kinetic">キネティックタイポグラフィ</option>
+          <option value="typo">タイポグラフィアニメーション</option>
+          <option value="fade">フェード</option>
+          <option value="type">タイプライター</option>
+          <option value="decode">デコード（文字化けから復元）</option>
+          <option value="none">文字を出さない</option>
+        </select>
+        <label for="font">書体</label>
+        <select id="font">
+          <option value="gothic">ゴシック（太）</option>
+          <option value="mincho">明朝</option>
+          <option value="dot">ドット</option>
+          <option value="pop">ポップ</option>
+        </select>
+        <label for="trDur">つなぎの長さ</label>
+        <input type="range" id="trDur" min="0.3" max="1.6" step="0.05" value="0.8" aria-label="トランジションの長さ">
+        <label class="chk"><input type="checkbox" id="textFx" checked> 文字にもエフェクトをかける</label>
+      </div>
+      <div id="fxList" class="sec"></div>
+      <p class="note">トランジションは、そのシーンから次へのつなぎに使います。複数オンにすると順番に使います。シーン側でトランジションをオンにすると、そのつなぎは全体の設定より優先されます。</p>
+      <p class="note" id="unsupported"></p>
+    </div>
+
+    <div class="pane" id="paneAsset" role="tabpanel" aria-labelledby="tabAsset" hidden>
+      <div class="sec">
+        <h2>画面比率・画質</h2>
+        <div class="seg" id="ratioSeg">
+          <button type="button" data-r="9:16">9:16 縦</button>
+          <button type="button" data-r="16:9">16:9 横</button>
+          <button type="button" data-r="1:1">1:1 正方形</button>
+        </div>
+        <div class="row">
+          <label for="quality">画質</label>
+          <select id="quality" style="width:auto">
+            <option value="1080">高画質（短辺1080px）</option>
+            <option value="720">軽量（短辺720px）</option>
+          </select>
+        </div>
+      </div>
+      <div class="sec">
+        <h2><span>シーン</span><span id="sceneCount"></span></h2>
+        <ul class="scenes" id="scenes"></ul>
+        <button class="add" id="addScene" type="button">＋ シーンを追加</button>
+      </div>
+      <div class="sec">
+        <h2>エンディング</h2>
+        <input type="text" id="endBrand" aria-label="名前・ロゴ文字" placeholder="名前・ロゴ文字">
+        <input type="text" id="endSub" aria-label="サブテキスト" placeholder="アカウント名・URLなど">
+        <p class="note">「ループ」をオンにするとエンディングを出さず、最後のシーンが最初につながります。</p>
+      </div>
+      <div class="sec">
+        <h2>BGM（任意）</h2>
+        <div class="file">
+          <label class="btn" for="bgm" style="cursor:pointer">音声を選ぶ</label>
+          <input type="file" id="bgm" accept="audio/*" hidden>
+          <span id="bgmName">なし</span>
+          <button class="btn" id="bgmClear" type="button" hidden>外す</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const cv = $('#cv'), mainCtx = cv.getContext('2d');
+let ctx = mainCtx;
+
+/* ---------- helpers ---------- */
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const outExpo = x => x >= 1 ? 1 : 1 - Math.pow(2, -10 * x);
+const inOutCubic = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const outBack = x => { const c = 1.70158, c3 = c + 1; return 1 + c3 * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+const outCubic = x => 1 - Math.pow(1 - x, 3);
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const frameRand = (local, salt) => rng(Math.floor(local * 24) * 131 + salt * 7919 + 17);
+const lines = t => (t || '').split('\n').map(s => s.trim()).filter(Boolean);
+function trackedWidth(str, tr) { let w = 0; for (const ch of str) w += ctx.measureText(ch).width; return w + tr * Math.max(0, [...str].length - 1); }
+function drawTracked(str, x, y, tr, align = 'left', perChar) {
+  const w = trackedWidth(str, tr);
+  let cx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+  ctx.textAlign = 'left';
+  [...str].forEach((ch, i) => { const cw = ctx.measureText(ch).width; if (perChar) perChar(ch, cx, y, i, cw); else ctx.fillText(ch, cx, y); cx += cw + tr; });
+}
+function fitSize(ls, font, base, maxW, trEm = 0) {
+  let s = base;
+  for (let k = 0; k < 30; k++) { ctx.font = font(s); if (Math.max(...ls.map(l => trackedWidth(l, s * trEm))) <= maxW) break; s *= .92; }
+  return s;
+}
+const GLYPHS = 'アイウエオカキクケコサシスセソタチツテトナニ#%&$@01<>/|*+=';
+function decode(str, p, r) {
+  const ch = [...str], n = ch.length;
+  return ch.map((c, k) => { if (c === ' ' || c === '　') return c; const at = .15 + .85 * (k / Math.max(1, n)); if (p >= at + .12) return c; if (p >= at - .25) return GLYPHS[Math.floor(r() * GLYPHS.length)]; return ''; }).join('');
+}
+
+/* ---------- sample images ---------- */
+function sampleImage(kind) {
+  const c = document.createElement('canvas'); c.width = 1200; c.height = 1500;
+  const g = c.getContext('2d'), W = c.width, H = c.height, r = rng(kind * 97 + 3);
+  if (kind === 0) {
+    const gr = g.createLinearGradient(0, 0, 0, H);
+    gr.addColorStop(0, '#2a1d40'); gr.addColorStop(.45, '#b4505a'); gr.addColorStop(.7, '#f0965a'); gr.addColorStop(1, '#f7cf8a');
+    g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    g.fillStyle = 'rgba(255,236,190,.95)'; g.beginPath(); g.arc(W * .62, H * .56, 150, 0, Math.PI * 2); g.fill();
+    ['#6e3046', '#4a2236', '#2b1626', '#170c16'].forEach((col, i) => {
+      g.fillStyle = col; g.beginPath(); g.moveTo(0, H);
+      const base = H * (.62 + i * .09), amp = 90 - i * 12, f = .004 + i * .0015, ph = r() * 9;
+      for (let x = 0; x <= W; x += 10) g.lineTo(x, base - Math.abs(Math.sin(x * f + ph)) * amp - Math.sin(x * f * 2.7 + ph) * amp * .3);
+      g.lineTo(W, H); g.fill();
+    });
+  } else if (kind === 1) {
+    const gr = g.createLinearGradient(0, 0, 0, H);
+    gr.addColorStop(0, '#070b1e'); gr.addColorStop(.6, '#1b2a55'); gr.addColorStop(1, '#3d4f80');
+    g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    for (let i = 0; i < 220; i++) { g.fillStyle = `rgba(255,255,255,${r() * .7})`; g.fillRect(r() * W, r() * H * .7, 2, 2); }
+    const mg = g.createRadialGradient(W * .35, H * .28, 60, W * .35, H * .28, 380);
+    mg.addColorStop(0, 'rgba(255,246,220,.55)'); mg.addColorStop(1, 'rgba(255,246,220,0)');
+    g.fillStyle = mg; g.fillRect(0, 0, W, H);
+    g.fillStyle = '#fbf3dc'; g.beginPath(); g.arc(W * .35, H * .28, 120, 0, Math.PI * 2); g.fill();
+    for (let i = 0; i < 70; i++) {
+      g.save(); g.translate(r() * W, r() * H); g.rotate(r() * Math.PI);
+      g.fillStyle = `rgba(${240 + r() * 15},${170 + r() * 40},${190 + r() * 30},${.5 + r() * .5})`;
+      const s = 8 + r() * 18; g.beginPath(); g.ellipse(0, 0, s, s * .55, 0, 0, Math.PI * 2); g.fill(); g.restore();
+    }
+  } else {
+    const gr = g.createLinearGradient(0, 0, W, H);
+    gr.addColorStop(0, '#8e1b14'); gr.addColorStop(.55, '#d2462b'); gr.addColorStop(1, '#e9a744');
+    g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    g.strokeStyle = 'rgba(255,230,190,.35)'; g.lineWidth = 3;
+    for (let k = 0; k < 4; k++) { const cx = r() * W, cy = r() * H; for (let i = 1; i < 14; i++) { g.beginPath(); g.arc(cx, cy, i * 34, 0, Math.PI * 2); g.stroke(); } }
+    g.fillStyle = 'rgba(20,6,4,.25)'; g.fillRect(0, H * .82, W, H * .18);
+  }
+  return c;
+}
+
+/* ---------- state ---------- */
+const RATIOS = { '9:16': [9, 16], '16:9': [16, 9], '1:1': [1, 1] };
+const state = {
+  ratio: '9:16', quality: 1080, textStyle: 'kinetic', font: 'gothic', textFx: true, trDur: .8,
+  scenes: [
+    { text: '季節を、\nまとう。', sub: 'AUTUMN COLLECTION', dur: 3.4 },
+    { text: '一枚の絵に、\n物語を。', sub: 'AI ART WORKS', dur: 3.4 },
+    { text: '新作、公開中。', sub: 'NOW ON INSTAGRAM', dur: 3.2 }
+  ].map((s, i) => ({ ...s, img: sampleImage(i), sample: true, thumb: null, fx: {}, useGlobal: true })),
+  end: { brand: 'YOUR NAME', sub: '@your_account' },
+  endFx: { fx: {}, useGlobal: true },
+  bgm: null, bgmUrl: null
+};
+const END_DUR = 2.8;
+let W = 1080, H = 1920, U = 10.8;
+const baseA = document.createElement('canvas'), baseB = document.createElement('canvas');
+
+/* ---------- shaders ---------- */
+const VERT = `attribute vec2 a;varying vec2 vUv;void main(){vUv=a*.5+.5;gl_Position=vec4(a,0.,1.);}`;
+
+const COMMON = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+varying vec2 vUv;
+uniform vec2 res;
+uniform float time;
+uniform vec4 F[NV];
+__DEFINES__
+float AR;
+float h21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
+vec2 h22(vec2 p){float n=h21(p);return vec2(n,h21(p+n*17.13+3.1));}
+float vnoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+ return mix(mix(h21(i),h21(i+vec2(1.,0.)),f.x),mix(h21(i+vec2(0.,1.)),h21(i+vec2(1.,1.)),f.x),f.y);}
+float fbm(vec2 p){float s=0.,a=.5;for(int i=0;i<5;i++){s+=a*vnoise(p);p*=2.03;a*=.5;}return s;}
+float lum(vec3 c){return dot(c,vec3(.299,.587,.114));}
+float ss(float a,float b,float x){return a<b?smoothstep(a,b,x):1.-smoothstep(b,a,x);}
+mat2 rot(float a){float c=cos(a),s=sin(a);return mat2(c,-s,s,c);}
+vec2 toP(vec2 uv){vec2 p=uv-.5;p.x*=AR;return p;}
+vec2 toUV(vec2 p){p.x/=AR;return p+.5;}
+`;
+
+/* pass 1: geometry, cells, compositing, transitions. Samples the two scene canvases (top-left origin). */
+const PASS1 = `
+uniform sampler2D tA,tB;
+uniform float uP,uTr,uDolly;
+vec3 gTint=vec3(1.);float gPaper=0.;float gShade=1.;
+vec3 tex(sampler2D t,vec2 uv){return texture2D(t,clamp(uv,0.,1.)).rgb;}
+
+vec2 geo(vec2 uv){
+ vec2 p=toP(uv);float r,a;
+ if(uDolly!=0.){p*=1.+uDolly*dot(p,p);}
+ if(fx_lens>0.){p*=1.+fx_lens*.7*dot(p,p);}
+ if(fx_fisheye>0.){r=length(p);float R=.85;if(r>0.)p=p/r*R*pow(min(r/R,2.),1.+fx_fisheye*1.3);}
+ if(fx_warp>0.){r=length(p);p=rot(fx_warp*3.2*max(0.,.8-r)/.8*sin(time*.7))*p;}
+ if(fx_swarp>0.){r=length(p);p*=1.+fx_swarp*.35*sin(time*2.-r*10.)*exp(-r*2.);}
+ if(fx_gravity>0.){vec2 c=.22*vec2(sin(time*.6),cos(time*.45));vec2 d=p-c;p-=fx_gravity*.035*d/(dot(d,d)+.008);}
+ if(fx_bhole>0.){r=length(p);p=rot(fx_bhole*.22/(r+.06))*p;p*=1.+fx_bhole*.04/(r*r+.004);}
+ if(fx_ripple>0.){r=length(p);if(r>0.)p+=p/r*sin(r*45.-time*7.)*.012*fx_ripple;}
+ if(fx_wave>0.){p.x+=sin(p.y*12.+time*3.)*.025*fx_wave;p.y+=sin(p.x*9.+time*2.)*.015*fx_wave;}
+ if(fx_liquid>0.){p+=(vec2(vnoise(p*3.+time*.4),vnoise(p*3.+7.3-time*.4))-.5)*.14*fx_liquid;}
+ if(fx_liquefy>0.){float d=fbm(vec2(p.x*7.,time*.15))*(.6+.4*sin(time*.6));p.y-=fx_liquefy*.3*d*smoothstep(-.6,.5,p.y);}
+ if(fx_displace>0.){p+=(vec2(fbm(p*5.+time*.15),fbm(p*5.+3.1-time*.1))-.5)*.09*fx_displace;}
+ if(fx_cgraph>0.){float m=smoothstep(.02,.22,p.y);p.x+=sin(p.y*34.-time*4.)*.007*fx_cgraph*m;p.y+=sin(p.x*22.+time*3.)*.005*fx_cgraph*m;}
+ if(fx_mirror>0.){p.x=abs(p.x);if(fx_mirror>.5)p.y=abs(p.y);}
+ if(fx_kaleido>0.){float n=floor(3.+fx_kaleido*7.);r=length(p);a=atan(p.y,p.x)+time*.15;float s=6.2831853/n;a=mod(a,s);a=abs(a-s*.5);p=r*vec2(cos(a),sin(a));}
+ if(fx_tunnel>0.){r=max(length(p),1e-3);a=atan(p.y,p.x);vec2 tp=toP(vec2(a/6.2831853+.5,fract(.22/r+time*.35)));p=mix(p,tp,fx_tunnel);gShade*=mix(1.,smoothstep(0.,.4,r),fx_tunnel);}
+ float dz=max(fx_izoom,fx_fzoom);
+ if(dz>0.){r=max(length(p),1e-4);a=atan(p.y,p.x);float K=log(2.6);float l=log(r)-time*.4;a+=fx_fzoom*l*.9;l=mod(l,K)-K;float rr=exp(l)*.62;p=mix(p,rr*vec2(cos(a),sin(a)),dz);}
+ return toUV(p);
+}
+
+vec2 cells(vec2 uv){
+ vec2 px=uv*res;float sc=res.y/1080.;
+ if(fx_pixel>0.){float bs=(4.+fx_pixel*44.)*sc;uv=(floor(px/bs)+.5)*bs/res;px=uv*res;}
+ if(fx_voxel>0.){float bs=(10.+fx_voxel*34.)*sc;vec2 c=floor(px/bs),f=fract(px/bs);uv=(c+.5)*bs/res;float sh=1.12-.32*f.y-.14*f.x;if(f.x<.07||f.y<.07)sh*=1.3;if(f.x>.94||f.y>.94)sh*=.6;gTint*=sh;px=uv*res;}
+ if(fx_poly>0.){float bs=(16.+fx_poly*64.)*sc;vec2 g=px/bs;vec2 c=floor(g),f=fract(g);vec2 cen=f.x>f.y?vec2(.667,.333):vec2(.333,.667);uv=(c+cen)*bs/res;gTint*=f.x>f.y?1.07:.93;px=uv*res;}
+ if(fx_crystal>0.||fx_shatter>0.){
+  bool cr=fx_crystal>0.;float bs=cr?(18.+fx_crystal*50.)*sc:(70.+fx_shatter*90.)*sc;
+  vec2 g=px/bs,i=floor(g),f=fract(g);float md=8.,md2=8.;vec2 best=vec2(0.);
+  for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 o=vec2(float(x),float(y));vec2 pt=o+h22(i+o);float d=length(pt-f);if(d<md){md2=md;md=d;best=i+pt;}else if(d<md2)md2=d;}
+  float e=md2-md;
+  if(cr){uv=best*bs/res;gTint*=mix(1.4,1.,smoothstep(0.,.07,e))*(.9+.2*h21(floor(best*7.)));}
+  else{vec2 id=floor(best*13.);uv+=(h22(id)-.5)*.035*fx_shatter*(1.+.4*sin(time*1.3+h21(id)*6.));gTint*=mix(1.8,1.,smoothstep(0.,.025,e))*(.88+.24*h21(id));}
+  px=uv*res;}
+ if(fx_collage>0.){float bs=res.y/(4.+fx_collage*3.);vec2 c=floor(px/bs),f=fract(px/bs)-.5;
+  f=rot((h21(c)-.5)*.6*fx_collage)*f*(1.+.18*fx_collage);if(max(abs(f.x),abs(f.y))>.47)gPaper=1.;
+  vec2 off=(h22(c+3.)-.5)*.6*fx_collage;uv=(c+.5+f+off)*bs/res;px=uv*res;}
+ if(fx_tslice>0.){float k=floor(uv.x*10.);float z=1.+fx_tslice*.09*sin(time*1.6+k*.9);uv=(uv-.5)/z+.5;gTint*=.9+.12*mod(k,2.);}
+ return uv;
+}
+
+vec3 side(sampler2D T,sampler2D O,vec2 uv){
+ vec3 c=tex(T,uv);
+ if(fx_para25>0.){vec2 cam=vec2(sin(time*.7),cos(time*.5))*.03*fx_para25;c=tex(T,uv+cam*(lum(c)-.5)*2.);}
+ if(fx_ckey>0.){float k=smoothstep(.06,.22,c.g-max(c.r,c.b));c=mix(c,tex(O,uv),k*fx_ckey);}
+ if(fx_double>0.){vec3 o=tex(O,(uv-.5)*1.12+.5+vec2(.02*sin(time*.3),0.));float m=lum(c);vec3 d=1.-(1.-c)*(1.-o*(1.-m*.7));c=mix(c,d,fx_double);}
+ if(fx_multi>0.){vec3 o1=tex(T,(uv-.5)*.72+.5+vec2(.06*sin(time*.4),0.));vec3 o2=tex(O,(uv-.5)*1.1+.5);c=mix(c,1.-(1.-c)*(1.-o1*.5)*(1.-o2*.45),fx_multi);}
+ if(fx_composite>0.){vec3 o=tex(O,uv);float m=smoothstep(.25,.95,uv.y+.15*sin(uv.x*5.+time*.5));
+  vec3 sl=mix(2.*c*o,1.-2.*(1.-c)*(1.-o),step(.5,o));c=mix(c,sl,m*fx_composite*.85);}
+ if(fx_pip>0.){vec2 cen=vec2(.62,.3),hs=vec2(.25,.17)*vec2(1.,AR)*.9;hs.y=min(hs.y,.22);vec2 q=(uv-cen)/hs;
+  float sh=ss(1.25,1.,max(abs(q.x-.06),abs(q.y-.08)));c*=1.-.45*sh*fx_pip;
+  if(max(abs(q.x),abs(q.y))<1.){vec3 inner=tex(O,q*.5+.5+vec2(.02*sin(time*.5),0.));float b=step(.955,max(abs(q.x),abs(q.y)));c=mix(c,mix(inner,vec3(.97),b),min(1.,fx_pip*1.5));}}
+ if(fx_portal>0.){vec2 p=toP(uv);float r=length(p);float R=.17+.025*sin(time*2.);
+  if(r<R){c=tex(O,toUV(rot((R-r)*14.+time*.8)*p*1.8));}
+  c+=vec3(.5,.75,1.)*exp(-abs(r-R)*70.)*fx_portal*1.6;c+=vec3(.6,.4,1.)*exp(-abs(r-R)*14.)*.25*fx_portal;}
+ return c;
+}
+vec3 SA(vec2 uv){return side(tA,tB,uv);}
+vec3 SB(vec2 uv){return side(tB,tA,uv);}
+
+vec3 trans(vec2 uv){
+ float p=uP;if(p<0.)return SA(uv);
+ vec2 px=uv*res;float sc=res.y/1080.;float tr=uTr;
+ if(tr<.5){float n=h21(floor(px/(28.*sc)));return n<p?SB(uv):SA(uv);}
+ if(tr<1.5){float bs=8.*sc;vec2 cid=floor(px/bs);float n=h21(cid);float e=p*1.3;
+  if(n<e-.3)return SB(uv);if(n>e)return SA(uv);
+  float k=(e-n)/.3;vec3 a=SA(uv+vec2(.02*(h21(cid+1.)-.5),.25*k*k));float dt=ss(.5,.15,length(fract(px/bs)-.5));
+  return mix(SB(uv),a*1.3+vec3(.25,.35,.5)*k,dt*(1.-k*.6));}
+ if(tr<2.5){float n=fbm(uv*vec2(AR,1.)*4.)*.85+uv.y*.15;float th=p*1.3-.15;
+  if(n<th-.04)return SB(uv);vec3 a=SA(uv);
+  if(n<th)return mix(vec3(1.,.55,.12)*2.,vec3(.1,.05,.03),(th-n)/.04);
+  return a*mix(.25,1.,smoothstep(th,th+.07,n));}
+ if(tr<3.5){float n=fbm(uv*6.)*.35+uv.x*.65;float th=p*1.45-.2;
+  if(n<th){float d=th-n;vec3 g=SA(uv-vec2(0.,d*.7));float m=step(.65,h21(floor(px/(2.*sc))))*step(d,.3);return mix(SB(uv),g*1.1,m);}
+  return SA(uv);}
+ if(tr<4.5){float n=fbm(uv*vec2(AR,1.)*2.5+3.);float v=n*.6+length(toP(uv))*.6;float th=p*1.35;
+  vec3 c=mix(SB(uv),SA(uv),smoothstep(th-.015,th+.015,v));return c*(1.-.85*exp(-abs(v-th)*70.));}
+ if(tr<5.5){float n=fbm(uv*3.+vec2(0.,-time*.3));float th=p*1.5-.25;float m=smoothstep(th-.15,th+.15,n);
+  vec3 c=mix(SB(uv),SA(uv),m);return mix(c,vec3(.88,.9,.93),(1.-abs(m*2.-1.))*.65);}
+ if(tr<6.5){vec2 d=(vec2(fbm(uv*3.+time*.2),fbm(uv*3.+5.))-.5)*sin(p*3.14159)*.4;return mix(SA(uv+d),SB(uv-d),smoothstep(.3,.7,p));}
+ if(tr<7.5){float z=1.+(p<.5?p:1.-p)*.35;vec3 c=p<.5?SA((uv-.5)/z+.5):SB((uv-.5)/z+.5);return c+exp(-abs(p-.5)*28.)*.9;}
+ if(tr<8.5){vec2 q=toP(uv);vec2 f=vec2(-q.y,q.x)*.7+(vec2(fbm(uv*4.),fbm(uv*4.+9.))-.5)*.6;float s=sin(p*3.14159);
+  return mix(SA(uv+f*s*.22*p),SB(uv-f*s*.22*(1.-p)),smoothstep(.2,.8,p));}
+ if(tr<9.5){float r=length(toP(uv));float R=p*.58*length(vec2(AR,1.))*1.05;vec3 c=mix(SA(uv),SB(uv),ss(R,R-.008,r));return c+exp(-abs(r-R)*120.)*.7*step(.01,p);}
+ if(tr<10.5){float d=(uv.x+uv.y*.45)-(p*1.75-.3);vec3 c=d<0.?SB(uv):SA(uv)*(1.-.55*exp(-d*22.));return c+exp(-abs(d)*140.)*.8;}
+ if(tr<11.5){float o=p<.5?4.*p*p*p:1.-pow(-2.*p+2.,3.)/2.;float bl=sin(p*3.14159)*.09;vec3 c=vec3(0.);
+  for(int i=0;i<9;i++){float x=uv.x+o+(float(i)/8.-.5)*bl;c+=x<1.?SA(vec2(x,uv.y)):SB(vec2(x-1.,uv.y));}return c/9.;}
+ if(tr<12.5){bool first=p<.5;float k=first?p*2.:(1.-p)*2.;float z=1.+k*k*3.;vec3 c=vec3(0.);
+  for(int i=0;i<8;i++){float zz=z*(1.+float(i)*.02*k);vec2 q=(uv-.5)/zz+.5;c+=first?SA(q):SB(q);}return c/8.+exp(-abs(p-.5)*30.)*.5;}
+ if(tr<13.5){float n=h21(floor(px/(10.*sc)))*.45+(1.-length(toP(uv))/.9)*.55;return mix(SB(uv),SA(uv),smoothstep(p*1.1-.05,p*1.1,n));}
+ if(tr<14.5){float k=floor(uv.y*12.);float l=clamp(p*1.6-k/12.*.6,0.,1.);float f=fract(uv.y*12.);vec3 c=f<l?SB(uv):SA(uv);return c*(1.-.6*exp(-abs(f-l)*60.)*step(.001,l)*step(l,.999));}
+ if(tr<15.5){float bs=95.*sc;vec2 g=px/bs,i=floor(g),f=fract(g);float md=8.,md2=8.;vec2 best=vec2(0.);
+  for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 o=vec2(float(x),float(y));vec2 pt=o+h22(i+o);float d=length(pt-f);if(d<md){md2=md;md=d;best=i+pt;}else if(d<md2)md2=d;}
+  vec2 id=floor(best*13.);float t0=h21(id)*.55+.05;float k=clamp((p-t0)/.3,0.,1.);
+  if(k>=1.)return SB(uv);vec2 dir=(best*bs/res-.5);vec3 a=SA(uv-dir*k*k*.5-vec2(0.,-k*k*.25));
+  return mix(a*(1.-k*.5),SB(uv),k*k)+vec3(1.)*ss(.03,0.,md2-md)*step(.02,p)*.6;}
+ if(tr<16.5){vec2 q=toP(uv);float r=length(q);float R=p*p*1.4;vec3 c=r<R?SB(toUV(rot((R-r)*3.*(1.-p))*q)):SA(toUV(rot(p*.6*exp(-(r-R)*3.))*q));
+  return c+vec3(.5,.75,1.)*exp(-abs(r-R)*55.)*1.4*step(.01,p)*step(p,.99);}
+ float zA=1.+p*p*5.,zB=.28+.72*p;return mix(SA((uv-.5)/zA+.5),SB((uv-.5)/zB+.5),smoothstep(.35,.8,p));
+}
+
+void main(){
+ AR=res.x/res.y;
+ vec2 uv0=vec2(vUv.x,1.-vUv.y);
+ vec2 uv=cells(geo(uv0));
+ vec3 c=trans(uv)*gTint;
+ c=mix(c,vec3(.96,.94,.9),gPaper);c*=gShade;
+ if(fx_bhole>0.){float r=length(toP(uv0));float R=.06*fx_bhole+.02;c*=smoothstep(R,R*1.12,r);c+=vec3(1.,.62,.3)*exp(-abs(r-R*1.25)*60.)*fx_bhole*1.3;}
+ gl_FragColor=vec4(c,1.);
+}
+`;
+
+/* pass 2: post effects + feedback. Samples framebuffer textures (bottom-left origin). */
+const PASS2 = `
+uniform sampler2D tS,tPrev;
+uniform float hasPrev,uCrash;
+uniform vec4 uTF;
+vec3 S(vec2 uv){return texture2D(tS,clamp(vec2(uv.x,1.-uv.y),0.,1.)).rgb;}
+vec3 Pv(vec2 uv){return texture2D(tPrev,clamp(vec2(uv.x,1.-uv.y),0.,1.)).rgb;}
+void main(){
+ AR=res.x/res.y;
+ vec2 uv=vec2(vUv.x,1.-vUv.y);vec2 px=uv*res;float sc=res.y/1080.;float tf=floor(time*24.);
+ if(fx_vhs>0.){uv.x+=(h21(vec2(floor(px.y/(2.*sc)),tf))-.5)*.003*fx_vhs;float band=fract(time*.17);if(abs(uv.y-band)<.03)uv.x+=(h21(vec2(floor(px.y/(3.*sc)),tf))-.5)*.05*fx_vhs;}
+ float gOn=0.;
+ if(fx_glitch>0.){gOn=step(1.-.35*fx_glitch,h21(vec2(tf*.37,3.)));float row=floor(uv.y*26.);
+  if(h21(vec2(row,tf))>1.-.45*fx_glitch*(.25+gOn))uv.x+=(h21(vec2(row+5.,tf))-.5)*.14*fx_glitch;
+  vec2 blk=floor(uv*vec2(12.,20.));if(h21(blk+tf)>1.-.07*fx_glitch*(1.+3.*gOn))uv+=(h22(blk+tf)-.5)*.07;}
+ if(fx_decay>0.){vec2 blk=floor(px/(32.*sc));float n=h21(blk+floor(time*6.));if(n<.2*fx_decay)uv=(blk+floor((h22(blk+tf)-.5)*6.)+.5)*32.*sc/res;}
+ vec3 c;
+ if(fx_mblur>0.||fx_rblur>0.||fx_zblur>0.||uCrash>0.){c=vec3(0.);vec2 q0=uv-.5;
+  for(int i=0;i<12;i++){float t=float(i)/11.-.5;vec2 q=vec2(q0.x*AR,q0.y);q=rot(t*fx_rblur*.14)*q;q.x/=AR;
+   q*=1.-(t+.5)*(fx_zblur*.12+uCrash*.3);q+=vec2(t*fx_mblur*.06,0.);c+=S(q+.5);}c/=12.;}
+ else c=S(uv);
+ if(fx_rgb>0.||fx_ca>0.||gOn>0.){vec2 o=vec2(.007*fx_rgb+gOn*.025*fx_glitch,0.);vec2 cd=(uv-.5)*.03*fx_ca;c.r=S(uv+o+cd).r;c.b=S(uv-o-cd).b;}
+ if(fx_psort>0.){float L=.3*fx_psort;vec3 m=c;for(int j=1;j<24;j++){float t=float(j)/23.;vec3 s=S(uv-vec2(0.,t*L));if(lum(s)>.55&&lum(s)>lum(m)*.92)m=mix(m,s,1.-t*.55);}c=max(c,m);}
+ if(fx_ghost>0.)c=1.-(1.-c)*(1.-S(uv+vec2(.04,.025)*fx_ghost)*.5);
+ if(fx_bloom>0.||fx_halation>0.){vec3 b=vec3(0.),hb=vec3(0.);
+  for(int i=0;i<16;i++){float a=float(i)*2.3998;float rr=sqrt(float(i)+.5)/4.;vec2 o=vec2(cos(a),sin(a))*rr*vec2(1./AR,1.);
+   b+=max(S(uv+o*.07)-.55,0.);hb+=max(S(uv+o*.025)-.5,0.);}
+  c+=b/16.*fx_bloom*2.6;c+=hb/16.*vec3(1.,.28,.1)*fx_halation*4.;}
+ if(fx_godray>0.||fx_volume>0.){vec2 lp=fx_volume>fx_godray?vec2(.5,-.12):vec2(.72+.05*sin(time*.3),.14);vec2 d=(uv-lp)/24.*.9;vec2 q=uv;float dec=1.;vec3 acc=vec3(0.);
+  for(int i=0;i<24;i++){q-=d;acc+=max(S(q)-.45,0.)*dec;dec*=.93;}acc/=7.;
+  c+=acc*vec3(1.,.85,.6)*fx_godray*1.6;
+  if(fx_volume>0.){float beams=pow(vnoise(vec2(atan(uv.x-.5,uv.y+.12)*14.,time*.25)),2.);c+=vec3(.9,.95,1.)*(beams*.35+.08)*(1.-uv.y)*fx_volume+acc*.7*fx_volume;}}
+ float edge=0.;vec2 gd=vec2(0.);
+ if(fx_rim>0.||fx_neon>0.||fx_wire>0.||fx_cel>0.||fx_roto>0.||fx_holo>0.||fx_laser>0.||fx_clay>0.||fx_stone>0.){
+  vec2 e=vec2(1.6*sc)/res;float l1=lum(S(uv+vec2(e.x,0.))),l2=lum(S(uv-vec2(e.x,0.))),l3=lum(S(uv+vec2(0.,e.y))),l4=lum(S(uv-vec2(0.,e.y)));
+  gd=vec2(l1-l2,l3-l4);edge=length(gd)*4.;}
+ vec3 base=c;float L=lum(c);
+ if(fx_cel>0.){vec3 q=floor(c*4.+.5)/4.;q*=1.-smoothstep(.25,.5,edge);c=mix(c,q,fx_cel);}
+ if(fx_roto>0.){vec3 q=floor(c*6.)/6.+.07;q*=1.-smoothstep(.14,.38,edge);q=mix(q,vec3(lum(q))*vec3(1.06,1.,.9),.3);c=mix(c,q,fx_roto);}
+ if(fx_clay>0.){vec3 q=floor(c*5.+.5)/5.;q*=clamp(.9-(gd.x+gd.y)*2.5,.6,1.35);q=mix(vec3(lum(q)),q,1.3);q+=(vnoise(px/(5.*sc))-.5)*.05;c=mix(c,q,fx_clay);}
+ if(fx_paper>0.){float lv=floor(L*4.)/4.+.12;float lo=floor(lum(S(uv-vec2(.006,.01)))*4.)/4.+.12;vec3 q=clamp(base/max(L,.05)*lv,0.,1.);if(lo>lv+.01)q*=.68;q+=(h21(floor(px/(2.*sc)))-.5)*.05;c=mix(c,q,fx_paper);}
+ if(fx_stone>0.){float n=fbm(px/(40.*sc))*.5+h21(px)*.1;vec3 q=vec3(.56,.54,.5)*(L*.8+.3)*(n+.6)*(.85-(gd.x+gd.y)*1.8);c=mix(c,q,fx_stone);}
+ if(fx_rim>0.){c+=mix(vec3(.4,.7,1.),vec3(1.,.75,.5),step(0.,gd.x))*smoothstep(.1,.5,edge)*fx_rim*1.3;}
+ if(fx_neon>0.){vec3 nc=mix(vec3(1.,.2,.7),vec3(.2,.85,1.),clamp(uv.x+.3*sin(time),0.,1.));vec3 q=c*.22+nc*smoothstep(.05,.35,edge)*2.2;c=mix(c,q,fx_neon);}
+ if(fx_wire>0.){float gr=max(step(.96,fract(px.x/(40.*sc))),step(.96,fract(px.y/(40.*sc))))*.22;vec3 q=vec3(.2,1.,.7)*(smoothstep(.05,.3,edge)*1.4+gr);c=mix(c,q,fx_wire);}
+ if(fx_holo>0.){float sl=.6+.4*sin(px.y/(3.*sc)*1.57-time*8.);float fl=.85+.15*h21(vec2(tf,1.));vec3 q=(vec3(.3,.85,1.)*(L*1.2+smoothstep(.1,.4,edge))+vec3(.03,.1,.16))*sl*fl;c=mix(c,q,fx_holo);}
+ if(fx_laser>0.){float ly=fract(time*.35);float dd=uv.y-ly;vec3 q=dd<0.?c*.3+vec3(1.,.15,.2)*smoothstep(.05,.3,edge)*1.5:c;q+=vec3(1.,.2,.25)*exp(-abs(dd)*300.)*2.;c=mix(c,q,fx_laser);}
+ if(fx_lparticle>0.){float bs=8.*sc;vec2 cid=floor(px/bs);vec3 s=S((cid+.5)*bs/res);float dt=ss(.5,.1,length(fract(px/bs)-.5))*(.6+.4*sin(time*3.+h21(cid)*6.28));
+  vec3 q=s*dt*1.6+s*.12+vec3(.6,.8,1.)*max(lum(s)-.55,0.)*dt;c=mix(c,q,fx_lparticle);}
+ if(fx_particlize>0.){float bs=6.*sc;vec2 g=px/bs+(vec2(vnoise(px/(60.*sc)+time*.3),vnoise(px/(60.*sc)+9.-time*.3))-.5)*3.*fx_particlize;vec2 cid=floor(g);
+  vec3 s=S((cid+.5)*bs/res);float dt=ss(.45,.22,length(fract(g)-.5))*step(.25,h21(cid));c=mix(c,s*dt*1.35,fx_particlize);}
+ if(fx_particle>0.){vec3 add=vec3(0.);for(int i=0;i<28;i++){float fi=float(i);vec2 pp=vec2(h21(vec2(fi,1.)),fract(h21(vec2(fi,2.))-time*(.04+.06*h21(vec2(fi,3.)))));
+   pp.x+=.03*sin(time+fi);vec2 d=(uv-pp)*vec2(AR,1.);float r=.004+.01*h21(vec2(fi,4.));float l=length(d);
+   add+=vec3(1.,.85,.6)*ss(r,0.,l)*.9+vec3(1.,.7,.4)*exp(-l/r*.8)*.12;}c+=add*fx_particle;}
+ if(fx_fractal>0.){vec2 z=toP(uv)*2.4;vec2 cc=vec2(-.8+.15*sin(time*.2),.156+.1*cos(time*.17));float it=0.;
+  for(int i=0;i<40;i++){z=vec2(z.x*z.x-z.y*z.y,2.*z.x*z.y)+cc;if(dot(z,z)>4.)break;it+=1.;}
+  float f=it/40.;vec3 fc=(.5+.5*cos(6.2831*(f*1.5+vec3(0.,.33,.67))+time*.3))*f;c=mix(c,1.-(1.-c)*(1.-fc),fx_fractal*.85);}
+ if(fx_leak>0.){vec2 v=vec2(AR,1.);float l1=exp(-length((uv-vec2(-.1+.15*sin(time*.4),.2))*v)*1.6);float l2=exp(-length((uv-vec2(1.05,.8+.1*sin(time*.3)))*v)*1.8);
+  c=1.-(1.-c)*(1.-(vec3(1.,.45,.15)*l1+vec3(1.,.2,.5)*l2)*fx_leak*1.1);}
+ if(fx_burn>0.){float n=fbm(uv*vec2(AR,1.)*3.+vec2(time*.4,0.));float ed=min(min(uv.x,1.-uv.x)*AR,min(uv.y,1.-uv.y));
+  float b=smoothstep(.55,.95,n+(.25-ed)*1.6*fx_burn+.15*sin(time*1.3)*fx_burn);c=mix(c,vec3(1.,.55,.2)*1.6,b*fx_burn);c+=vec3(1.,.9,.7)*smoothstep(.85,1.,n+(.2-ed)*1.6)*fx_burn;}
+ if(fx_flare>0.){vec2 lp=vec2(.25+.1*sin(time*.25),.22);vec2 d=(uv-lp)*vec2(AR,1.);
+  c+=vec3(1.,.9,.7)*exp(-length(d)*9.)*fx_flare*1.2;c+=vec3(.4,.6,1.)*exp(-abs(d.y)*90.)*exp(-abs(d.x)*1.5)*fx_flare*.9;
+  for(int i=1;i<5;i++){float fi=float(i);vec2 gp=lp+(vec2(.5)-lp)*fi*.55;c+=vec3(.35,.5,.9-.15*fi)*ss(.03+.015*fi,0.,length((uv-gp)*vec2(AR,1.)))*.2*fx_flare;}}
+ if(fx_proj>0.){float ph=floor(mod(time*.5,3.));float pat;
+  if(ph<1.)pat=step(.5,fract(uv.x*14.-time*1.5));else if(ph<2.)pat=max(step(.88,fract(uv.x*16.)),step(.88,fract(uv.y*16./AR)));else pat=step(.5,fract(length(toP(uv))*10.-time*2.));
+  c=mix(c,c*(.22+1.5*pat),fx_proj);}
+ if(fx_vhs>0.){c=mix(c,vec3(lum(c))*vec3(1.05,1.,.95),.25*fx_vhs);c.r=mix(c.r,S(uv+vec2(.004,0.)).r,.5*fx_vhs);c+=(h21(floor(px/(2.*sc))+tf)-.5)*.12*fx_vhs;
+  float band=fract(time*.17);c+=step(abs(uv.y-band),.015)*h21(vec2(floor(px.x/(2.*sc)),tf))*.5*fx_vhs;}
+ if(fx_dnoise>0.){vec2 blk=floor(px/(6.*sc));vec3 rn=vec3(h21(blk+tf),h21(blk+tf+3.),h21(blk+tf+7.));c=mix(c,rn,step(1.-.05*fx_dnoise,h21(blk*1.7+tf)));
+  c+=(vec3(h21(px+tf),h21(px+tf+1.),h21(px+tf+2.))-.5)*.2*fx_dnoise;}
+ if(fx_grain>0.)c+=(h21(floor(px)+fract(time*7.)*100.)-.5)*.17*fx_grain*(1.-L*.5);
+ if(fx_scan>0.)c*=1.-fx_scan*.4*(.5+.5*sin(px.y/sc*3.14159/2.));
+ if(fx_flicker>0.)c*=1.+(h21(vec2(tf,5.))-.5)*.4*fx_flicker;
+ if(fx_strobe>0.){float on=step(.5,fract(time*5.));c=mix(c,on>.5?c*1.15+.05:c*.08,fx_strobe);}
+ c*=1.+(h21(vec2(floor(time*12.),8.))-.5)*.3*uTF.x;
+ c=mix(c,vec3(lum(c))*vec3(1.06,1.,.9),uTF.y*.75);c+=uTF.w;
+ if(hasPrev>.5){
+  if(fx_datamosh>0.){vec2 blk=floor(px/(16.*sc));if(h21(blk+floor(time*3.))<.55*fx_datamosh){vec2 mv=(vec2(vnoise(blk*.3+time),vnoise(blk*.3+5.-time))-.5)*.014;c=Pv(uv+mv);}}
+  if(fx_echo>0.)c=max(c,Pv((uv-.5)*.985+.5)*.9*fx_echo);
+  if(fx_after>0.)c=max(c,Pv(uv)*.84*fx_after);
+  if(fx_trail>0.)c=mix(c,max(c,Pv(uv+vec2(-.004,.003))),.88*fx_trail);
+  if(fx_longexp>0.)c=mix(c,Pv(uv),.9*fx_longexp);
+  float fb=max(fx_fblend,uTF.z);if(fb>0.)c=mix(c,Pv(uv),.5*fb);
+  if(fx_chrono>0.){vec3 pv=Pv(uv+vec2(.0015,0.));c=max(c,pv*.975*fx_chrono);c=mix(c,vec3(lum(c))*vec3(1.08,1.,.86),.35*fx_chrono);}
+  if(fx_slit>0.){vec3 pv=Pv(uv-vec2(0.,2.5*sc/res.y));c=mix(pv,c,max(step(uv.y,.012),1.-fx_slit*.96));}
+ }
+ gl_FragColor=vec4(clamp(c,0.,1.),1.);
+}
+`;
+const PASS3 = `precision mediump float;varying vec2 vUv;uniform sampler2D t;void main(){gl_FragColor=vec4(texture2D(t,vUv).rgb,1.);}`;
+
+/* ---------- effect catalog ---------- */
+const CATS = [
+  ['glitch', 'グリッチ・デジタル'], ['film', '光・フィルム'], ['blur', 'ブラー'], ['fb', '残像・時間の重なり'],
+  ['time', '時間操作'], ['distort', '歪み・空間'], ['style', 'スタイライズ・粒子'], ['comp', '合成'],
+  ['camera', 'カメラワーク'], ['trans', 'トランジション（シーンのつなぎ）']
+];
+// [id, name, category, kind: s=shader t=time c=camera r=transition, default strength (null = on/off only)]
+const FX = [
+  ['glitch', 'グリッチ', 'glitch', 's', .6], ['datamosh', 'データモッシュ', 'glitch', 's', .6], ['psort', 'ピクセルソート', 'glitch', 's', .6],
+  ['rgb', 'RGBスプリット', 'glitch', 's', .5], ['ca', '色収差', 'glitch', 's', .6], ['scan', 'スキャンライン', 'glitch', 's', .5],
+  ['vhs', 'VHSノイズ', 'glitch', 's', .6], ['dnoise', 'デジタルノイズ', 'glitch', 's', .5], ['decay', 'デジタル崩壊', 'glitch', 's', .5],
+  ['holo', 'ホログラム', 'glitch', 's', .85], ['laser', 'レーザースキャン', 'glitch', 's', .85], ['wire', 'ワイヤーフレーム化', 'glitch', 's', .85],
+
+  ['grain', 'フィルムグレイン', 'film', 's', .5], ['burn', 'フィルムバーン', 'film', 's', .6], ['leak', 'ライトリーク', 'film', 's', .5],
+  ['flare', 'レンズフレア', 'film', 's', .6], ['bloom', 'ブルーム', 'film', 's', .5], ['halation', 'ハレーション', 'film', 's', .5],
+  ['ghost', 'ゴースト', 'film', 's', .5], ['godray', 'ゴッドレイ', 'film', 's', .6], ['volume', 'ボリューメトリックライト', 'film', 's', .6],
+  ['rim', 'リムライト', 'film', 's', .6], ['neon', 'ネオン発光', 'film', 's', .8], ['proj', 'プロジェクションマッピング', 'film', 's', .7],
+  ['flicker', 'フリッカー', 'film', 's', .5], ['strobe', 'ストロボ', 'film', 's', .5],
+
+  ['mblur', 'モーションブラー', 'blur', 's', .5], ['rblur', 'ラジアルブラー', 'blur', 's', .5], ['zblur', 'ズームブラー', 'blur', 's', .5],
+
+  ['echo', 'エコー', 'fb', 's', .7], ['after', 'フレーム残像', 'fb', 's', .7], ['trail', 'トレイル', 'fb', 's', .7],
+  ['longexp', '長時間露光表現', 'fb', 's', .7], ['fblend', 'フレームブレンディング', 'fb', 's', .7], ['chrono', 'クロノフォトグラフィ', 'fb', 's', .8],
+  ['slit', 'スリットスキャン', 'fb', 's', .8], ['tslice', 'タイムスライス', 'fb', 's', .7],
+
+  ['speedramp', 'スピードランプ', 'time', 't', .8], ['remap', 'タイムリマップ', 'time', 't', .8], ['tlapse', 'タイムラプス', 'time', 't', .7],
+  ['hlapse', 'ハイパーラプス', 'time', 't', .7], ['slowmo', 'スローモーション', 'time', 't', .7], ['freeze', 'フリーズフレーム', 'time', 't', .8],
+  ['reverse', 'リバース', 'time', 't', null], ['stopmo', 'ストップモーション', 'time', 't', .6], ['loop', 'ループ（最後が最初につながる）', 'time', 't', null],
+  ['sloop', 'シームレスループ（カメラが往復）', 'time', 't', null], ['cgraph', 'シネマグラフ（一部だけ動く）', 'time', 's', .7], ['bullet', 'バレットタイム風', 'time', 'c', .8],
+
+  ['warp', 'ワープ', 'distort', 's', .6], ['displace', 'ディスプレイスメント', 'distort', 's', .6], ['liquid', 'リキッドディストーション', 'distort', 's', .6],
+  ['liquefy', '液体化', 'distort', 's', .6], ['ripple', 'リップル', 'distort', 's', .6], ['wave', 'ウェーブディストーション', 'distort', 's', .6],
+  ['lens', 'レンズディストーション', 'distort', 's', .6], ['fisheye', 'フィッシュアイ', 'distort', 's', .6], ['kaleido', 'カレイドスコープ／万華鏡', 'distort', 's', .4],
+  ['mirror', 'ミラーリング', 'distort', 's', .4], ['swarp', '空間歪曲', 'distort', 's', .6], ['gravity', '重力歪曲', 'distort', 's', .6],
+  ['bhole', 'ブラックホール表現', 'distort', 's', .7], ['tunnel', 'トンネルエフェクト', 'distort', 's', 1], ['portal', 'ポータルエフェクト', 'distort', 's', .8],
+  ['fzoom', 'フラクタルズーム', 'distort', 's', 1], ['izoom', '無限ズーム', 'distort', 's', 1],
+
+  ['pixel', 'ピクセル化', 'style', 's', .4], ['voxel', 'ボクセル化', 'style', 's', .4], ['poly', 'ポリゴン化', 'style', 's', .4],
+  ['crystal', '結晶化', 'style', 's', .4], ['shatter', 'フラクチャー／シャッター／破砕', 'style', 's', .6], ['stone', '石化', 'style', 's', .8],
+  ['cel', 'セルアニメーション風', 'style', 's', .8], ['roto', 'ロトスコープ風', 'style', 's', .8], ['clay', 'クレイアニメ風', 'style', 's', .8],
+  ['paper', 'ペーパーカット風', 'style', 's', .85], ['collage', 'コラージュ風', 'style', 's', .6], ['fractal', 'フラクタル', 'style', 's', .6],
+  ['particle', 'パーティクル', 'style', 's', .7], ['particlize', '粒子化', 'style', 's', .7], ['lparticle', '光粒子化', 'style', 's', .8],
+
+  ['double', 'ダブルエクスポージャー', 'comp', 's', .7], ['multi', '多重露光', 'comp', 's', .7], ['ckey', 'クロマキー（緑背景を抜く）', 'comp', 's', 1],
+  ['composite', 'コンポジット', 'comp', 's', .7], ['pip', 'フレームインフレーム', 'comp', 's', 1],
+
+  ['kenburns', 'ゆっくりズーム（ケンバーンズ）', 'camera', 'c', .6], ['crash', 'クラッシュズーム', 'camera', 'c', .8], ['dolly', 'ドリーズーム', 'camera', 'c', .8],
+  ['parallax', 'パララックス', 'camera', 'c', .7], ['para25', '2.5Dパララックス', 'camera', 's', .7], ['orbit', 'オービットショット風', 'camera', 'c', .7],
+  ['fpv', 'FPVショット風', 'camera', 'c', .7], ['drone', 'ドローンショット風', 'camera', 'c', .7],
+
+  ['t_digital', 'デジタルディゾルブ', 'trans', 'r', null], ['t_particle', 'パーティクルディゾルブ', 'trans', 'r', null], ['t_ash', 'アッシュディゾルブ', 'trans', 'r', null],
+  ['t_sand', 'サンドディゾルブ', 'trans', 'r', null], ['t_ink', 'インクディゾルブ', 'trans', 'r', null], ['t_smoke', 'スモークトランジション', 'trans', 'r', null],
+  ['t_liquid', 'リキッドトランジション', 'trans', 'r', null], ['t_match', 'マッチカット', 'trans', 'r', null], ['t_morph', 'モーフィング／モーフトランジション', 'trans', 'r', null],
+  ['t_mask', 'マスクトランジション', 'trans', 'r', null], ['t_wipe', 'オブジェクトワイプ風', 'trans', 'r', null], ['t_whip', 'ウィップパン', 'trans', 'r', null],
+  ['t_crash', 'クラッシュズーム（つなぎ）', 'trans', 'r', null], ['t_rev', 'リバースディゾルブ', 'trans', 'r', null], ['t_shutter', 'シャッター', 'trans', 'r', null],
+  ['t_shatter', '破砕トランジション', 'trans', 'r', null], ['t_portal', 'ポータル', 'trans', 'r', null], ['t_onecut', 'ワンカット風（ズームでつなぐ）', 'trans', 'r', null]
+].map(([id, name, cat, kind, def]) => ({ id, name, cat, kind, def }));
+const FXMAP = Object.fromEntries(FX.map(f => [f.id, f]));
+const SHADER_FX = FX.filter(f => f.kind === 's');
+const TR_FX = FX.filter(f => f.kind === 'r');
+const NV = Math.ceil(SHADER_FX.length / 4);
+const UNSUPPORTED = ['マッチムーブ', 'モーショントラッキング', 'カメラトラッキング', 'マットペイント', 'オブジェクト変形', 'マテリアル変換'];
+
+const fxState = {}; // id -> {on, amt}
+FX.forEach(f => { fxState[f.id] = { on: false, amt: f.def ?? 1 }; });
+const DEFAULT_ON = ['kenburns', 'rgb', 'bloom', 'leak', 'grain', 't_digital', 't_whip', 't_ash'];
+DEFAULT_ON.forEach(id => fxState[id].on = true);
+fxState.rgb.amt = .3;
+const GLOBAL_ONLY = ['loop'];
+// CUR holds the effective strengths for the scene being drawn; null means the global rack.
+let CUR = null;
+const on = id => (CUR ? CUR[id] : (fxState[id].on ? fxState[id].amt : 0)) > 0;
+const amt = id => CUR ? CUR[id] : (fxState[id].on ? fxState[id].amt : 0);
+function ownerOf(item) { return item.kind === 'scene' ? state.scenes[item.k] : state.endFx; }
+function effFor(item) {
+  const o = ownerOf(item), useG = o.useGlobal !== false, res = {};
+  const ownTr = TR_FX.some(f => o.fx[f.id] && o.fx[f.id].on); // the scene's own cuts replace the global ones
+  FX.forEach(f => { const s = o.fx[f.id], g = fxState[f.id]; res[f.id] = s && s.on ? s.amt : (useG && g.on && !(ownTr && f.kind === 'r') ? g.amt : 0); });
+  return res;
+}
+
+/* ---------- WebGL ---------- */
+let gl = null, glc = null, P1, P2, P3, quad, texA, texB, fboS, fbo = [], cur = 0, hasPrev = false, glError = '';
+const Fbuf = new Float32Array(NV * 4);
+function shaderSrc(body) {
+  const defs = SHADER_FX.map((f, k) => `#define fx_${f.id} F[${k >> 2}].${'xyzw'[k & 3]}`).join('\n');
+  return COMMON.replace('NV', String(NV)).replace('__DEFINES__', defs) + body;
+}
+function compile(type, src) {
+  const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+function program(fs) {
+  const p = gl.createProgram();
+  gl.attachShader(p, compile(gl.VERTEX_SHADER, VERT)); gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs));
+  gl.bindAttribLocation(p, 0, 'a'); gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  const u = {}; const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
+  for (let k = 0; k < n; k++) { const info = gl.getActiveUniform(p, k); const name = info.name.replace('[0]', ''); u[name] = gl.getUniformLocation(p, name); }
+  return { p, u };
+}
+function mkTex(w, h) {
+  const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  if (w) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  return t;
+}
+function mkFbo(w, h) { const t = mkTex(w, h), f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0); return { t, f }; }
+function initGL() {
+  glc = document.createElement('canvas');
+  gl = glc.getContext('webgl', { preserveDrawingBuffer: true, alpha: false, antialias: false, premultipliedAlpha: false });
+  if (!gl) { glError = 'このブラウザではWebGLが使えないため、エフェクトなしで表示しています。'; return false; }
+  try { P1 = program(shaderSrc(PASS1)); P2 = program(shaderSrc(PASS2)); P3 = program(PASS3); }
+  catch (e) { glError = 'エフェクトの準備に失敗しました: ' + String(e.message || e).slice(0, 200); console.error(e); gl = null; return false; }
+  quad = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  texA = mkTex(); texB = mkTex();
+  return true;
+}
+function sizeGL() {
+  if (!gl) return;
+  glc.width = W; glc.height = H;
+  [fboS, ...fbo].forEach(o => { if (o) { gl.deleteTexture(o.t); gl.deleteFramebuffer(o.f); } });
+  fboS = mkFbo(W, H); fbo = [mkFbo(W, H), mkFbo(W, H)]; hasPrev = false;
+}
+function upload(t, canvas) { gl.bindTexture(gl.TEXTURE_2D, t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas); }
+function bindTex(unit, t, loc) { gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t); if (loc) gl.uniform1i(loc, unit); }
+function runGL(o) {
+  SHADER_FX.forEach((f, k) => { Fbuf[k] = o.fxA[f.id] * (1 - o.k) + o.fxB[f.id] * o.k; });
+  gl.viewport(0, 0, W, H);
+  // pass 1
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fboS.f); gl.useProgram(P1.p);
+  gl.uniform2f(P1.u.res, W, H); gl.uniform1f(P1.u.time, o.time); gl.uniform4fv(P1.u.F, Fbuf);
+  gl.uniform1f(P1.u.uP, o.prog); gl.uniform1f(P1.u.uTr, o.tr); gl.uniform1f(P1.u.uDolly, o.dolly);
+  bindTex(0, texA, P1.u.tA); bindTex(1, texB, P1.u.tB);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  // pass 2
+  const out = fbo[cur], prev = fbo[1 - cur];
+  gl.bindFramebuffer(gl.FRAMEBUFFER, out.f); gl.useProgram(P2.p);
+  gl.uniform2f(P2.u.res, W, H); gl.uniform1f(P2.u.time, o.time); gl.uniform4fv(P2.u.F, Fbuf);
+  gl.uniform1f(P2.u.hasPrev, hasPrev ? 1 : 0); gl.uniform1f(P2.u.uCrash, o.crash); gl.uniform4f(P2.u.uTF, o.tf.flick, o.tf.freeze, o.tf.blend, o.tf.flash);
+  bindTex(0, fboS.t, P2.u.tS); bindTex(1, prev.t, P2.u.tPrev);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  // pass 3 to screen
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.useProgram(P3.p);
+  bindTex(0, out.t, P3.u.t); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  cur = 1 - cur; hasPrev = true;
+}
+
+/* ---------- time & camera ---------- */
+function timeMap(local, dur) {
+  const raw = clamp(local / dur);
+  let p = raw, ampl = 1; const tf = { flick: 0, freeze: 0, blend: 0, flash: 0 }; let jx = 0, jy = 0;
+  if (on('stopmo')) { const st = Math.floor(local * 8); p = clamp(st / 8 / dur); const r = rng(st * 31 + 7); jx = (r() - .5) * U * 1.2 * amt('stopmo'); jy = (r() - .5) * U * 1.2 * amt('stopmo'); }
+  if (on('reverse')) p = 1 - p;
+  if (on('speedramp')) p = clamp(p + amt('speedramp') * .75 / (2 * Math.PI) * Math.sin(2 * Math.PI * p));
+  if (on('remap')) p = p + (inOutCubic(p) - p) * amt('remap');
+  if (on('sloop')) p = .5 - .5 * Math.cos(2 * Math.PI * p);
+  if (on('freeze')) { const a = amt('freeze'); if (raw >= .45 && raw < .65) { p = Math.min(p, .45); tf.freeze = a; tf.flash = (1 - seg(raw, .45, .5)) * .7 * a; } }
+  if (on('tlapse')) { ampl *= 1 + 2.5 * amt('tlapse'); tf.flick = amt('tlapse'); }
+  if (on('hlapse')) { ampl *= 1 + 2.5 * amt('hlapse'); p = Math.floor(p * 16) / 16 + outCubic((p * 16) % 1) / 16 * .4; const r = rng(Math.floor(p * 16) + 3); jx += (r() - .5) * U * amt('hlapse'); jy += (r() - .5) * U * amt('hlapse'); }
+  if (on('slowmo')) { ampl *= 1 - .65 * amt('slowmo'); tf.blend = Math.max(tf.blend, .6 * amt('slowmo')); }
+  if (on('bullet')) { ampl *= .6; tf.blend = Math.max(tf.blend, .4); }
+  if (on('cgraph')) ampl *= .15;
+  return { p, ampl, tf, jx, jy };
+}
+function camera(tm, local) {
+  const m = tm.p * tm.ampl, c = { s: 1, x: tm.jx, y: tm.jy, rot: 0, skew: 0, over: 1.03, dolly: 0, crash: 0 };
+  if (on('kenburns')) { const a = amt('kenburns'); c.s *= 1 + .14 * a * m; c.x -= W * .05 * a * m; }
+  if (on('crash')) { const a = amt('crash'); c.s *= 1 + .5 * a * outExpo(seg(local, .5, .72)); c.crash = a * Math.sin(Math.PI * seg(local, .45, .8)); }
+  if (on('dolly')) { const a = amt('dolly'); c.s *= 1 + .4 * a * m; c.dolly = -.55 * a * m; }
+  if (on('orbit') || on('bullet')) { const a = Math.max(amt('orbit'), amt('bullet') * 1.4); const ph = (m - .5) * Math.PI; c.x += W * .14 * a * Math.sin(ph); c.skew += .07 * a * Math.cos(ph) * Math.sign(.5 - m || 1); c.rot += .025 * a * (m - .5); c.over = Math.max(c.over, 1.18); }
+  if (on('fpv')) { const a = amt('fpv'); c.s *= 1 + .6 * a * m; c.rot += .06 * a * Math.sin(local * 2.2); c.x += U * .7 * a * Math.sin(local * 13); c.y += U * .7 * a * Math.cos(local * 11); c.over = Math.max(c.over, 1.15); }
+  if (on('drone')) { const a = amt('drone'); c.y += H * .07 * a * (.5 - m); c.s *= 1.15 - .12 * a * m; c.rot += .03 * a * (m - .5); c.over = Math.max(c.over, 1.1); }
+  return c;
+}
+function drawCam(g, img, c, xOff = 0) {
+  g.save(); g.translate(W / 2 + c.x + xOff, H / 2 + c.y); g.rotate(c.rot); g.transform(1, 0, c.skew, 1, 0, 0); g.scale(c.s, c.s);
+  const s0 = Math.max(W / img.width, H / img.height) * c.over;
+  g.drawImage(img, -img.width * s0 / 2, -img.height * s0 / 2, img.width * s0, img.height * s0); g.restore();
+}
+
+
+/* ---------- persistence (this browser only) ---------- */
+const STORE = 'setsuna-cm-fx-v1';
+function saveSettings() {
+  try { localStorage.setItem(STORE, JSON.stringify({ fx: fxState, sceneFx: state.scenes.map(s => ({ fx: s.fx, useGlobal: s.useGlobal })), endFx: state.endFx, textStyle: state.textStyle, font: state.font, textFx: state.textFx, trDur: state.trDur })); } catch (_) {}
+}
+try {
+  const s = JSON.parse(localStorage.getItem(STORE) || 'null');
+  if (s && s.fx) { Object.keys(s.fx).forEach(k => { if (fxState[k]) { fxState[k].on = !!s.fx[k].on; fxState[k].amt = +s.fx[k].amt || fxState[k].amt; } }); if (Array.isArray(s.sceneFx)) s.sceneFx.forEach((x, k) => { if (state.scenes[k] && x && x.fx) { state.scenes[k].fx = x.fx; state.scenes[k].useGlobal = x.useGlobal !== false; } }); if (s.endFx && s.endFx.fx) state.endFx = { fx: s.endFx.fx, useGlobal: s.endFx.useGlobal !== false }; Object.assign(state, { textStyle: s.textStyle || state.textStyle, font: s.font || state.font, textFx: s.textFx !== false, trDur: +s.trDur || state.trDur }); }
+} catch (_) {}
+
+/* ---------- size ---------- */
+function setSize() {
+  const [a, b] = RATIOS[state.ratio], q = state.quality;
+  if (a < b) { W = q; H = Math.round(q * b / a); } else if (a > b) { H = q; W = Math.round(q * a / b); } else { W = H = q; }
+  W -= W % 2; H -= H % 2; cv.width = W; cv.height = H; U = Math.min(W, H) / 100;
+  baseA.width = baseB.width = W; baseA.height = baseB.height = H;
+  sizeGL(); partnerKey = '';
+}
+
+/* ---------- copy (text) ---------- */
+const FONTS = {
+  gothic: sz => `900 ${sz}px "Zen Kaku Gothic New",sans-serif`,
+  mincho: sz => `800 ${sz}px "Shippori Mincho B1",serif`,
+  dot: sz => `400 ${sz}px "DotGothic16","Zen Kaku Gothic New",monospace`,
+  pop: sz => `400 ${sz}px "Dela Gothic One","Zen Kaku Gothic New",sans-serif`
+};
+function drawCopy(text, sub, local, dur, isEnd, alphaMul = 1) {
+  const style = state.textStyle; if (style === 'none') return;
+  const ls = lines(text), font = FONTS[state.font];
+  if (!ls.length && !sub) return;
+  const size = fitSize(ls.length ? ls : [' '], font, U * (isEnd ? 10 : (H > W ? 9 : 8)), W * .84, .04);
+  const lh = size * 1.25, block = lh * Math.max(0, ls.length - 1);
+  const cy = isEnd ? H / 2 : H * (H > W ? .74 : .7);
+  const y0 = cy - block / 2 + size * .35;
+  const fo = (isEnd ? 1 - seg(local, dur - .25, dur) : 1 - seg(local, dur - .35, dur)) * alphaMul;
+  ctx.save();
+  if (!isEnd) { const lg = ctx.createLinearGradient(0, H * .45, 0, H); lg.addColorStop(0, 'rgba(0,0,0,0)'); lg.addColorStop(1, `rgba(0,0,0,${.6 * alphaMul})`); ctx.fillStyle = lg; ctx.fillRect(0, H * .45, W, H * .55); }
+  ctx.font = font(size); ctx.fillStyle = '#fff'; ctx.textBaseline = 'alphabetic';
+  ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = U * 1.5;
+  const tr = size * .04;
+  if (style === 'fade') {
+    ls.forEach((l, li) => { const a = outCubic(seg(local, .3 + li * .18, .9 + li * .18)); ctx.globalAlpha = a * fo; drawTracked(l, W / 2, y0 + li * lh + (1 - a) * size * .4, tr, 'center'); });
+  } else if (style === 'typo') {
+    ls.forEach((l, li) => {
+      const e = outExpo(seg(local, .25 + li * .15, 1 + li * .15)), y = y0 + li * lh;
+      ctx.save(); ctx.beginPath(); ctx.rect(0, y - size * 1.05, W, size * 1.38); ctx.clip();
+      ctx.globalAlpha = fo; drawTracked(l, W / 2, y + (1 - e) * size * 1.4, tr, 'center'); ctx.restore();
+    });
+    const bw = W * .16 * outExpo(seg(local, .5, 1.2)); ctx.globalAlpha = fo; ctx.shadowBlur = 0;
+    ctx.fillRect(W / 2 - bw / 2, y0 + block + size * .45, bw, Math.max(2, U * .35));
+  } else if (style === 'kinetic') {
+    let k = 0;
+    ls.forEach((l, li) => drawTracked(l, W / 2, y0 + li * lh, tr, 'center', (ch, x, y, i, cw) => {
+      const t0 = .25 + k * .045, e = seg(local, t0, t0 + .55), dir = k % 2 ? 1 : -1;
+      const q = isEnd ? 0 : seg(local, dur - .55 + k * .012, dur - .2 + k * .012); k++;
+      if (e <= 0) return;
+      const s = .15 + .85 * outBack(e), wob = Math.sin(local * 3 + k) * size * .02 * (e >= 1 ? 1 : 0);
+      ctx.save(); ctx.globalAlpha = Math.min(1, e * 2) * (1 - q) * alphaMul;
+      ctx.translate(x + cw / 2, y - size * .35 + wob - q * q * H * .25 + (1 - outCubic(e)) * size * 1.2 * dir);
+      ctx.rotate((1 - outCubic(e)) * .9 * dir + q * dir * .8); ctx.scale(s, s);
+      ctx.fillText(ch, -cw / 2, size * .35); ctx.restore();
+    }));
+  } else if (style === 'type') {
+    const all = ls.map(l => [...l]), N = all.reduce((a, c) => a + c.length, 0);
+    let n = Math.floor(N * seg(local, .3, .3 + N * .06)), lastX = null, lastY = y0;
+    ctx.globalAlpha = fo;
+    all.forEach((chars, li) => {
+      const full = chars.join(''), str = chars.slice(0, Math.max(0, n)).join(''); n -= chars.length;
+      const w = trackedWidth(full, tr), x = W / 2 - w / 2, y = y0 + li * lh;
+      drawTracked(str, x, y, tr, 'left'); if (str) { lastX = x + trackedWidth(str, tr); lastY = y; }
+    });
+    if (lastX !== null && Math.floor(local * 2.5) % 2 === 0) { ctx.shadowBlur = 0; ctx.fillRect(lastX + U * .4, lastY - size * .82, size * .45, size * .9); }
+  } else if (style === 'decode') {
+    ls.forEach((l, li) => { ctx.globalAlpha = fo; drawTracked(decode(l, seg(local, .25, 1.25) - li * .08, frameRand(local, li + 3)), W / 2, y0 + li * lh, tr, 'center'); });
+  }
+  if (sub) {
+    ctx.shadowBlur = U; ctx.globalAlpha = seg(local, .6, 1.1) * fo;
+    ctx.font = `400 ${U * (isEnd ? 3 : 2.6)}px "Share Tech Mono","Zen Kaku Gothic New",monospace`;
+    const sy = isEnd ? y0 + block + U * 8 : y0 - size - U * 2.5;
+    drawTracked(style === 'decode' ? decode(sub, seg(local, .6, 1.4), frameRand(local, 9)) : sub, W / 2, sy, U * .8, 'center');
+  }
+  ctx.restore();
+}
+
+/* ---------- items & frame rendering ---------- */
+function items() { const a = state.scenes.map((s, k) => ({ kind: 'scene', k, dur: s.dur })); if (!fxState.loop.on) a.push({ kind: 'end', dur: END_DUR }); return a; }
+const total = () => items().reduce((s, x) => s + x.dur, 0);
+function locate(t) {
+  const it = items(); let acc = 0;
+  for (let i = 0; i < it.length; i++) { if (t < acc + it[i].dur || i === it.length - 1) return { i, local: t - acc, it }; acc += it[i].dur; }
+}
+function drawEndBg(local) {
+  const g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#07080d'); g.addColorStop(1, '#1b1630');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const rg = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * .5);
+  rg.addColorStop(0, `rgba(211,163,79,${.18 + .06 * Math.sin(local * 2)})`); rg.addColorStop(1, 'rgba(211,163,79,0)');
+  ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+}
+function drawItem(canvas, item, local, withText, eff) {
+  CUR = eff; ctx = canvas.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+  let info = { tf: { flick: 0, freeze: 0, blend: 0, flash: 0 }, cam: { dolly: 0, crash: 0 } };
+  if (item.kind === 'scene') {
+    const sc = state.scenes[item.k], tm = timeMap(local, item.dur), cam = camera(tm, local);
+    info = { tf: tm.tf, cam };
+    if (sc.img) {
+      if (on('parallax')) {
+        const a = amt('parallax'), m = tm.p * tm.ampl;
+        drawCam(ctx, sc.img, cam, -W * .03 * a * m);
+        ctx.save(); ctx.beginPath(); ctx.rect(0, H * .5, W, H * .5); ctx.clip();
+        drawCam(ctx, sc.img, { ...cam, s: cam.s * 1.06 }, W * .05 * a * m); ctx.restore();
+        ctx.save(); ctx.beginPath(); ctx.rect(0, H * .72, W, H * .28); ctx.clip();
+        drawCam(ctx, sc.img, { ...cam, s: cam.s * 1.12 }, W * .1 * a * m); ctx.restore();
+      } else drawCam(ctx, sc.img, cam);
+    } else {
+      const g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#1d2333'); g.addColorStop(1, '#3a2a3f'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    }
+    if (withText) drawCopy(sc.text, sc.sub, local, item.dur, false);
+  } else {
+    drawEndBg(local);
+    if (withText) drawCopy(state.end.brand, state.end.sub, local, item.dur, true);
+  }
+  ctx = mainCtx;
+  return info;
+}
+const NEEDS_PARTNER = ['double', 'multi', 'ckey', 'composite', 'pip', 'portal'];
+let partnerKey = '', lastT = -1;
+function renderFrame(t) {
+  const { i, local, it } = locate(t), m = it.length, loopOn = fxState.loop.on;
+  const td = Math.min(state.trDur, ...it.map(x => x.dur * .8));
+  const effs = it.map(effFor);
+  const trsOf = x => TR_FX.filter(f => effs[x][f.id] > 0);
+  let a = { i, local }, b = null, prog = -1, trIdx = 0;
+  if (m > 1) {
+    if (local < td / 2 && (i > 0 || loopOn)) {
+      const pi = (i - 1 + m) % m, trs = trsOf(pi);
+      if (trs.length) { b = { i, local }; a = { i: pi, local: it[pi].dur + local }; prog = .5 + local / td; trIdx = TR_FX.indexOf(trs[pi % trs.length]); }
+    } else if (local > it[i].dur - td / 2 && (i < m - 1 || loopOn)) {
+      const trs = trsOf(i);
+      if (trs.length) { const ni = (i + 1) % m; b = { i: ni, local: local - it[i].dur }; prog = .5 - (it[i].dur - local) / td; trIdx = TR_FX.indexOf(trs[i % trs.length]); }
+    }
+  }
+  const info = drawItem(baseA, it[a.i], a.local, state.textFx, effs[a.i]);
+  if (b) { drawItem(baseB, it[b.i], b.local, state.textFx, effs[b.i]); partnerKey = ''; }
+  else if (gl && NEEDS_PARTNER.some(id => effs[a.i][id] > 0)) {
+    const pi = (a.i + 1) % m, key = `${pi}|${W}|${H}|${state.textFx}`;
+    if (key !== partnerKey) { drawItem(baseB, it[pi], 1.4, false, effs[pi]); partnerKey = key; upload(texB, baseB); }
+  }
+  CUR = null;
+  const fxA = effs[a.i], fxB = b ? effs[b.i] : fxA, kB = prog < 0 ? 0 : clamp((prog - .3) / .4);
+  if (Math.abs(t - lastT) > .25 || t < lastT) hasPrev = false;
+  lastT = t;
+  if (gl) {
+    upload(texA, baseA); if (b) upload(texB, baseB);
+    runGL({ time: t, prog, tr: trIdx, dolly: info.cam.dolly || 0, crash: info.cam.crash || 0, tf: info.tf, fxA, fxB, k: kB * kB * (3 - 2 * kB) });
+    mainCtx.drawImage(glc, 0, 0);
+  } else {
+    mainCtx.drawImage(baseA, 0, 0);
+    if (b && prog >= 0) { mainCtx.globalAlpha = clamp(prog); mainCtx.drawImage(baseB, 0, 0); mainCtx.globalAlpha = 1; }
+  }
+  if (!state.textFx) {
+    const side = prog >= .5 && b ? b : a, item = it[side.i];
+    if (item.kind === 'scene') { const sc = state.scenes[item.k]; drawCopy(sc.text, sc.sub, side.local, item.dur, false); }
+    else drawCopy(state.end.brand, state.end.sub, side.local, item.dur, true);
+  }
+  return a.i;
+}
+
+/* ---------- fonts ---------- */
+const FONT_SPECS = ['900 64px "Zen Kaku Gothic New"', '700 64px "Zen Kaku Gothic New"', '800 64px "Shippori Mincho B1"', '400 64px "DotGothic16"', '400 64px "Dela Gothic One"', '400 64px "Share Tech Mono"'];
+let fontTimer = null;
+async function ensureFonts() {
+  const txt = state.scenes.map(s => s.text + s.sub).join('') + state.end.brand + state.end.sub + GLYPHS + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@_.';
+  try { await Promise.all(FONT_SPECS.map(f => document.fonts.load(f, txt))); } catch (_) {}
+}
+function fontsSoon() { clearTimeout(fontTimer); fontTimer = setTimeout(() => ensureFonts().then(render), 250); }
+
+/* ---------- playback ---------- */
+let t = 0, playing = false, last = 0, recording = false;
+const scrub = $('#scrub'), timeEl = $('#time');
+function render() {
+  const tt = clamp(t, 0, total() - .001);
+  const i = renderFrame(tt);
+  scrub.max = total().toFixed(2); scrub.value = tt.toFixed(2);
+  timeEl.textContent = `${tt.toFixed(1)} / ${total().toFixed(1)} 秒`;
+  document.querySelectorAll('.scene').forEach((el, k) => el.classList.toggle('cur', k === i));
+  [...$('#timeline').children].forEach((el, k) => el.classList.toggle('on', k === i));
+}
+function loop(now) {
+  if (!playing) return;
+  t += Math.min(.1, (now - last) / 1000); last = now;
+  if (t >= total()) t = 0;
+  render(); requestAnimationFrame(loop);
+}
+function setPlaying(p) {
+  playing = p;
+  $('#playIcon').innerHTML = p ? '<path d="M3 2h3.5v12H3zM9.5 2H13v12H9.5z"/>' : '<path d="M3 1.5v13l11-6.5z"/>';
+  $('#playBtn').setAttribute('aria-label', p ? '一時停止' : '再生');
+  if (p) { last = performance.now(); requestAnimationFrame(loop); }
+}
+$('#playBtn').addEventListener('click', () => { if (!recording) setPlaying(!playing); });
+scrub.addEventListener('input', () => { if (recording) return; setPlaying(false); t = +scrub.value; render(); });
+const refreshStill = () => { if (!playing && !recording) render(); };
+
+/* ---------- tabs ---------- */
+function selectTab(fx) {
+  $('#tabFx').setAttribute('aria-selected', String(fx)); $('#tabAsset').setAttribute('aria-selected', String(!fx));
+  $('#paneFx').hidden = !fx; $('#paneAsset').hidden = fx;
+}
+$('#tabFx').addEventListener('click', () => selectTab(true));
+$('#tabAsset').addEventListener('click', () => selectTab(false));
+
+/* ---------- effect rack UI ---------- */
+/* target: 'all' = whole video, a scene index, or 'end' */
+let target = 'all';
+const targetObj = () => target === 'all' ? null : target === 'end' ? state.endFx : state.scenes[+target];
+function own() { const o = targetObj(); return o ? o.fx : fxState; }
+function ownGet(id) { const o = own(); if (!o[id]) o[id] = { on: false, amt: FXMAP[id].def ?? 1 }; return o[id]; }
+const targetName = () => target === 'all' ? '全体' : target === 'end' ? 'エンディング' : `シーン ${String(+target + 1).padStart(2, '0')}`;
+function buildTargets() {
+  if (target !== 'all' && target !== 'end' && !state.scenes[+target]) target = 'all';
+  const sel = $('#fxTarget'); sel.innerHTML = '';
+  const add = (v, txt) => { const o = document.createElement('option'); o.value = v; o.textContent = txt; sel.append(o); };
+  add('all', '全体（すべてのシーン）');
+  state.scenes.forEach((s, k) => { const n = Object.values(s.fx).filter(x => x.on).length; add(String(k), `シーン ${String(k + 1).padStart(2, '0')}${n ? `（独自 ${n}）` : ''}${s.useGlobal === false ? '・全体オフ' : ''}`); });
+  const ne = Object.values(state.endFx.fx).filter(x => x.on).length;
+  add('end', `エンディング${ne ? `（独自 ${ne}）` : ''}${state.endFx.useGlobal === false ? '・全体オフ' : ''}`);
+  sel.value = target;
+}
+function setTarget(v, jump = true) {
+  target = v; buildTargets(); syncFxUI();
+  if (jump && !recording) {
+    if (v === 'end' && !fxState.loop.on) { setPlaying(false); t = total() - END_DUR + 1.6; render(); }
+    else if (v !== 'all' && v !== 'end') jumpTo(+v);
+  }
+}
+$('#fxTarget').addEventListener('change', e => setTarget(e.target.value));
+$('#useGlobal').addEventListener('change', e => { const o = targetObj(); if (o) { o.useGlobal = e.target.checked; fxChanged(); } });
+
+function buildFxList() {
+  const box = $('#fxList'); box.innerHTML = '';
+  CATS.forEach(([cat, label]) => {
+    const det = document.createElement('details'); det.className = 'cat'; det.dataset.cat = cat;
+    const sum = document.createElement('summary'); const name = document.createElement('span'); name.textContent = label;
+    const cnt = document.createElement('span'); cnt.className = 'cnt';
+    sum.append(name, cnt); det.append(sum);
+    const rows = document.createElement('div'); rows.className = 'rows';
+    FX.filter(f => f.cat === cat).forEach(f => {
+      const row = document.createElement('div'); row.className = 'fx'; row.dataset.id = f.id; row.dataset.name = f.name;
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.className = 'sw'; cb.id = `fx-${f.id}`;
+      const lb = document.createElement('label'); lb.htmlFor = cb.id; lb.textContent = f.name;
+      const inh = document.createElement('small'); inh.className = 'inh'; inh.textContent = '全体でON'; inh.hidden = true; lb.append(inh);
+      row.append(cb, lb);
+      let rg = null;
+      if (f.def !== null) {
+        rg = document.createElement('input'); rg.type = 'range'; rg.min = 0.05; rg.max = 1; rg.step = .01; rg.id = `amt-${f.id}`;
+        rg.setAttribute('aria-label', `${f.name}の強さ`);
+        rg.addEventListener('input', () => { ownGet(f.id).amt = +rg.value; saveSettings(); refreshStill(); });
+        row.append(rg);
+      }
+      cb.addEventListener('change', () => { ownGet(f.id).on = cb.checked; if (rg) rg.disabled = !cb.checked; fxChanged(); });
+      rows.append(row);
+    });
+    det.append(rows);
+    if (FX.some(f => f.cat === cat && fxState[f.id].on)) det.open = true;
+    box.append(det);
+  });
+  $('#unsupported').textContent = `静止画からは作れないため未対応：${UNSUPPORTED.join('、')}（動画素材や3D解析が必要です）。「〜風」は静止画での近似表現です。`;
+  syncFxUI();
+}
+function syncFxUI() {
+  const o = own(), tObj = targetObj(), useG = !tObj || tObj.useGlobal !== false;
+  $('#useGlobalRow').hidden = !tObj; $('#useGlobal').checked = useG;
+  $('#targetHint').textContent = tObj ? `ここでオンにした効果は${targetName()}だけにかかります。` : 'ここでオンにした効果はすべてのシーンにかかります。';
+  FX.forEach(f => {
+    const s = o[f.id], isOn = !!(s && s.on), a = s ? s.amt : (f.def ?? 1);
+    const row = document.querySelector(`.fx[data-id="${f.id}"]`); if (!row) return;
+    row.querySelector('.sw').checked = isOn;
+    const rg = row.querySelector('input[type=range]'); if (rg) { rg.disabled = !isOn; rg.value = a; }
+    row.querySelector('.inh').hidden = !(tObj && useG && !isOn && fxState[f.id].on);
+    row.classList.toggle('global-only', GLOBAL_ONLY.includes(f.id));
+    row.dataset.blocked = tObj && GLOBAL_ONLY.includes(f.id) ? '1' : '';
+  });
+  applyFilter();
+  document.querySelectorAll('details.cat').forEach(d => {
+    const n = FX.filter(f => f.cat === d.dataset.cat && o[f.id] && o[f.id].on).length;
+    d.querySelector('.cnt').textContent = n ? `${n} 使用中` : '';
+  });
+  const box = $('#activeFx'); box.innerHTML = '';
+  const act = FX.filter(f => o[f.id] && o[f.id].on);
+  const lbl = document.createElement('span'); lbl.className = 'lbl';
+  const gN = FX.filter(f => fxState[f.id].on).length;
+  lbl.textContent = tObj ? `${targetName()}の独自 ${act.length}${useG ? `　＋全体 ${gN}` : '　全体オフ'}` : (act.length ? `全体 ${act.length}` : 'エフェクトなし');
+  box.append(lbl);
+  act.forEach(f => {
+    const c = document.createElement('span'); c.className = 'chip' + (f.kind === 'r' ? ' tr' : '');
+    c.append(document.createTextNode(f.name));
+    const x = document.createElement('button'); x.type = 'button'; x.textContent = '×'; x.setAttribute('aria-label', `${f.name}をオフにする`);
+    x.addEventListener('click', () => { o[f.id].on = false; fxChanged(); });
+    c.append(x); box.append(c);
+  });
+}
+function fxChanged() { syncFxUI(); buildTargets(); buildScenes(); saveSettings(); hasPrev = false; partnerKey = ''; buildTimeline(); t = clamp(t, 0, total() - .001); refreshStill(); }
+function applyFilter() {
+  const q = $('#fxSearch').value.trim().toLowerCase();
+  document.querySelectorAll('details.cat').forEach(d => {
+    let any = false;
+    d.querySelectorAll('.fx').forEach(r => { const hit = (!q || r.dataset.name.toLowerCase().includes(q)) && !r.dataset.blocked; r.hidden = !hit; any = any || hit; });
+    d.hidden = !any; if (q) d.open = any;
+  });
+}
+$('#fxSearch').addEventListener('input', applyFilter);
+$('#fxClear').addEventListener('click', () => { const o = own(); Object.values(o).forEach(s => s.on = false); fxChanged(); });
+$('#fxRandom').addEventListener('click', () => {
+  const o = own(); Object.values(o).forEach(s => s.on = false);
+  const set = (f, a) => { const s = ownGet(f.id); s.on = true; s.amt = a; };
+  const r = Math.random, pick = (arr, n) => arr.slice().sort(() => r() - .5).slice(0, n);
+  const heavy = ['tunnel', 'izoom', 'fzoom', 'kaleido', 'wire', 'holo', 'laser', 'stone', 'longexp', 'strobe', 'mirror', 'bhole'];
+  const shader = SHADER_FX.filter(f => !['time', 'camera'].includes(f.cat));
+  pick(shader.filter(f => !heavy.includes(f.id)), 3).forEach(f => set(f, .35 + r() * .4));
+  if (r() < .45) { const h = FXMAP[pick(heavy, 1)[0]]; set(h, h.def ?? 1); }
+  pick(FX.filter(f => f.cat === 'camera' && f.kind === 'c'), 1).forEach(f => set(f, f.def));
+  if (r() < .5) pick(FX.filter(f => f.kind === 't' && !['loop', 'reverse'].includes(f.id)), 1).forEach(f => set(f, f.def ?? 1));
+  pick(TR_FX, target === 'all' ? 2 : 1).forEach(f => set(f, 1));
+  fxChanged();
+  if (!playing && !recording) { if (target === 'all') { t = 0; setPlaying(true); } else setTarget(target); }
+});
+const ts = $('#textStyle'), fo = $('#font'), tfx = $('#textFx'), trd = $('#trDur');
+ts.value = state.textStyle; fo.value = state.font; tfx.checked = state.textFx; trd.value = state.trDur;
+ts.addEventListener('change', () => { state.textStyle = ts.value; saveSettings(); refreshStill(); });
+fo.addEventListener('change', () => { state.font = fo.value; saveSettings(); ensureFonts().then(refreshStill); });
+tfx.addEventListener('change', () => { state.textFx = tfx.checked; partnerKey = ''; saveSettings(); refreshStill(); });
+trd.addEventListener('input', () => { state.trDur = +trd.value; saveSettings(); refreshStill(); });
+
+/* ---------- ratio / quality ---------- */
+function syncRatio() { document.querySelectorAll('#ratioSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.r === state.ratio))); }
+$('#ratioSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || recording) return; state.ratio = b.dataset.r; syncRatio(); setSize(); render(); });
+$('#quality').addEventListener('change', e => { if (recording) return; state.quality = +e.target.value; setSize(); render(); });
+
+/* ---------- scenes ---------- */
+function thumbOf(s) {
+  if (!s.img) return '';
+  if (!s.thumb) {
+    const c = document.createElement('canvas'); c.width = c.height = 144;
+    const g = c.getContext('2d'), sc = Math.max(144 / s.img.width, 144 / s.img.height);
+    g.drawImage(s.img, (144 - s.img.width * sc) / 2, (144 - s.img.height * sc) / 2, s.img.width * sc, s.img.height * sc);
+    s.thumb = c.toDataURL('image/jpeg', .8);
+  }
+  return s.thumb;
+}
+function buildTimeline() {
+  const tl = $('#timeline'); tl.innerHTML = '';
+  items().forEach(x => { const i = document.createElement('i'); i.style.flex = x.dur; tl.append(i); });
+}
+function buildScenes() {
+  const ul = $('#scenes'); ul.innerHTML = '';
+  $('#sceneCount').textContent = `${state.scenes.length} シーン`;
+  state.scenes.forEach((s, k) => {
+    const li = document.createElement('li'); li.className = 'scene';
+    const th = document.createElement('label'); th.className = 'thumb'; th.htmlFor = `img${k}`;
+    if (s.img) th.style.backgroundImage = `url(${thumbOf(s)})`; else th.textContent = '画像を選ぶ';
+    if (s.sample) { const em = document.createElement('em'); em.textContent = 'サンプル'; th.append(em); }
+    const fi = document.createElement('input'); fi.type = 'file'; fi.accept = 'image/*'; fi.id = `img${k}`; fi.setAttribute('aria-label', `シーン${k + 1}の画像`);
+    fi.addEventListener('change', () => { const f = fi.files[0]; if (f) loadImage(f, s); });
+    th.append(fi);
+    const body = document.createElement('div'); body.className = 'scene-body';
+    const head = document.createElement('div'); head.className = 'scene-head';
+    const lab = document.createElement('span'); lab.textContent = `シーン ${String(k + 1).padStart(2, '0')}`;
+    const icons = document.createElement('div'); icons.className = 'icons';
+    const mk = (txt, title, fn, dis) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = txt; b.title = title; b.setAttribute('aria-label', title); b.disabled = dis; b.addEventListener('click', fn); icons.append(b); };
+    const nfx = Object.values(s.fx).filter(x => x.on).length;
+    const fb = document.createElement('button'); fb.type = 'button'; fb.className = 'fxbtn' + (nfx || s.useGlobal === false ? ' has' : '');
+    fb.textContent = nfx ? `エフェクト ${nfx}` : 'エフェクト'; fb.setAttribute('aria-label', `シーン${k + 1}のエフェクトを設定`);
+    fb.addEventListener('click', () => { selectTab(true); setTarget(String(k)); });
+    icons.append(fb);
+    mk('↑', '上へ移動', () => move(k, -1), k === 0);
+    mk('↓', '下へ移動', () => move(k, 1), k === state.scenes.length - 1);
+    mk('×', 'シーンを削除', () => { if (state.scenes.length > 1) { state.scenes.splice(k, 1); refresh(); } }, state.scenes.length <= 1);
+    head.append(lab, icons);
+    const ta = document.createElement('textarea'); ta.id = `txt${k}`; ta.value = s.text; ta.rows = 2; ta.placeholder = 'キャッチコピー（改行で行を分けます）'; ta.setAttribute('aria-label', `シーン${k + 1}のキャッチコピー`);
+    ta.addEventListener('input', () => { s.text = ta.value; partnerKey = ''; fontsSoon(); refreshStill(); });
+    const sub = document.createElement('input'); sub.type = 'text'; sub.id = `sub${k}`; sub.value = s.sub; sub.placeholder = 'サブテキスト（英字など）'; sub.setAttribute('aria-label', `シーン${k + 1}のサブテキスト`);
+    sub.addEventListener('input', () => { s.sub = sub.value; partnerKey = ''; fontsSoon(); refreshStill(); });
+    const dur = document.createElement('div'); dur.className = 'dur';
+    const dl = document.createElement('span'); dl.textContent = '長さ';
+    const rg = document.createElement('input'); rg.type = 'range'; rg.min = 1.5; rg.max = 8; rg.step = .1; rg.value = s.dur; rg.id = `dur${k}`; rg.setAttribute('aria-label', `シーン${k + 1}の長さ`);
+    const out = document.createElement('output'); out.textContent = `${(+s.dur).toFixed(1)}秒`;
+    rg.addEventListener('input', () => { s.dur = +rg.value; out.textContent = `${s.dur.toFixed(1)}秒`; buildTimeline(); refreshStill(); });
+    dur.append(dl, rg, out);
+    body.append(head, ta, sub, dur);
+    li.append(th, body);
+    li.addEventListener('click', e => { if (e.target.closest('input,textarea,button,label')) return; jumpTo(k); });
+    ul.append(li);
+  });
+}
+function jumpTo(k) { if (recording) return; setPlaying(false); t = state.scenes.slice(0, k).reduce((a, s) => a + s.dur, 0) + 1.6; render(); }
+function move(k, d) { const j = k + d; [state.scenes[k], state.scenes[j]] = [state.scenes[j], state.scenes[k]]; refresh(); }
+function loadImage(file, s) {
+  const url = URL.createObjectURL(file), img = new Image();
+  img.onload = () => { s.img = img; s.sample = false; s.thumb = null; partnerKey = ''; buildScenes(); refreshStill(); };
+  img.onerror = () => { URL.revokeObjectURL(url); notice('この画像は読み込めませんでした。JPEG・PNG・WebP をお試しください。'); };
+  img.src = url;
+}
+function refresh() { partnerKey = ''; buildTargets(); syncFxUI(); buildScenes(); buildTimeline(); t = clamp(t, 0, total() - .001); refreshStill(); }
+$('#addScene').addEventListener('click', () => { state.scenes.push({ text: '新しいコピー', sub: '', dur: 3, img: null, sample: false, thumb: null, fx: {}, useGlobal: true }); refresh(); jumpTo(state.scenes.length - 1); });
+
+/* ---------- end + bgm ---------- */
+const eb = $('#endBrand'), es = $('#endSub');
+eb.value = state.end.brand; es.value = state.end.sub;
+const showEnd = () => { if (!playing && !fxState.loop.on) { t = total() - END_DUR + 1.8; } fontsSoon(); refreshStill(); };
+eb.addEventListener('input', () => { state.end.brand = eb.value; partnerKey = ''; showEnd(); });
+es.addEventListener('input', () => { state.end.sub = es.value; partnerKey = ''; showEnd(); });
+const bgmEl = new Audio(); bgmEl.preload = 'auto';
+$('#bgm').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  if (state.bgmUrl) URL.revokeObjectURL(state.bgmUrl);
+  state.bgmUrl = URL.createObjectURL(f); bgmEl.src = state.bgmUrl; state.bgm = f.name;
+  $('#bgmName').textContent = f.name; $('#bgmClear').hidden = false;
+});
+$('#bgmClear').addEventListener('click', () => { state.bgm = null; bgmEl.removeAttribute('src'); $('#bgmName').textContent = 'なし'; $('#bgmClear').hidden = true; $('#bgm').value = ''; });
+
+/* ---------- export ---------- */
+const result = $('#result'), prog = $('#prog');
+function notice(m) { result.hidden = false; $('#resultVideo').hidden = true; $('#progWrap').hidden = true; $('#resultTitle').textContent = 'お知らせ'; $('#resultText').textContent = m; $('#saveBtn').hidden = true; $('#closeResult').hidden = false; }
+$('#closeResult').addEventListener('click', () => { result.hidden = true; });
+let audioCtx = null, audioSrc = null, audioGain = null, audioDest = null;
+function pickMime() {
+  const c = ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+  return c.find(m => window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || '';
+}
+let lastBlob = null, lastName = '', downloads = null;
+$('#exportBtn').addEventListener('click', async () => {
+  if (recording) return;
+  if (!window.MediaRecorder || !cv.captureStream) { notice('このブラウザは動画の書き出しに対応していません。パソコン版の Chrome か Edge でお試しください。'); return; }
+  setPlaying(false); recording = true; $('#exportBtn').disabled = true;
+  result.hidden = false; $('#resultVideo').hidden = true; $('#progWrap').hidden = false; $('#saveBtn').hidden = true; $('#closeResult').hidden = true;
+  $('#resultTitle').textContent = '書き出し中…'; $('#resultText').textContent = '実時間で録画しています。完了までこのタブを開いたままにしてください。';
+  prog.style.width = '0';
+  await ensureFonts();
+  const stream = cv.captureStream(30);
+  const useAudio = !!state.bgm;
+  if (useAudio) {
+    try {
+      if (!audioCtx) { audioCtx = new AudioContext(); audioSrc = audioCtx.createMediaElementSource(bgmEl); audioGain = audioCtx.createGain(); audioDest = audioCtx.createMediaStreamDestination(); audioSrc.connect(audioGain); audioGain.connect(audioDest); audioGain.connect(audioCtx.destination); }
+      await audioCtx.resume();
+      audioDest.stream.getAudioTracks().forEach(tr => stream.addTrack(tr));
+    } catch (_) {}
+  }
+  const mime = pickMime();
+  let rec;
+  try { rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: state.quality >= 1080 ? 14e6 : 7e6 } : undefined); }
+  catch (_) { recording = false; $('#exportBtn').disabled = false; notice('録画を開始できませんでした。別のブラウザでお試しください。'); return; }
+  const chunks = [];
+  rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+  const dur = total();
+  rec.onstop = () => {
+    if (useAudio) bgmEl.pause();
+    stream.getTracks().forEach(tr => { if (tr.kind === 'video') tr.stop(); });
+    const type = (rec.mimeType || mime || 'video/webm').split(';')[0], ext = type.includes('mp4') ? 'mp4' : 'webm';
+    lastBlob = new Blob(chunks, { type });
+    const n = FX.filter(f => fxState[f.id].on).length;
+    lastName = `CM_${state.ratio.replace(':', 'x')}_fx${n}.${ext}`;
+    const v = $('#resultVideo'); if (v.src) URL.revokeObjectURL(v.src); v.src = URL.createObjectURL(lastBlob); v.hidden = false;
+    $('#progWrap').hidden = true; $('#resultTitle').textContent = '書き出し完了';
+    $('#resultText').textContent = `${lastName}（${(lastBlob.size / 1048576).toFixed(1)} MB・${dur.toFixed(1)}秒）` + (ext === 'webm' ? '。WebM形式です。SNSに載せる前にMP4への変換が必要な場合があります。' : '');
+    $('#saveBtn').hidden = false; $('#closeResult').hidden = false;
+    recording = false; $('#exportBtn').disabled = false; t = 0; render();
+  };
+  t = 0; hasPrev = false; lastT = -1; renderFrame(0);
+  rec.start(250);
+  if (useAudio) {
+    try { bgmEl.currentTime = 0; const now = audioCtx.currentTime; audioGain.gain.cancelScheduledValues(now); audioGain.gain.setValueAtTime(1, now); audioGain.gain.setValueAtTime(1, now + Math.max(0, dur - 1)); audioGain.gain.linearRampToValueAtTime(0, now + dur); await bgmEl.play(); } catch (_) {}
+  }
+  const start = performance.now();
+  const step = now => {
+    t = (now - start) / 1000;
+    if (t >= dur) { renderFrame(dur - .001); setTimeout(() => rec.state !== 'inactive' && rec.stop(), 120); return; }
+    renderFrame(t); prog.style.width = `${(t / dur * 100).toFixed(1)}%`;
+    scrub.value = t.toFixed(2); timeEl.textContent = `${t.toFixed(1)} / ${dur.toFixed(1)} 秒`;
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+});
+$('#saveBtn').addEventListener('click', async () => {
+  if (!lastBlob) return;
+  if (!downloads) {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(lastBlob); a.download = lastName;
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    $('#resultText').textContent = `${lastName} をダウンロードしました。`; return;
+  }
+  try { await downloads.save({ filename: lastName, data: lastBlob }); $('#resultText').textContent = `${lastName} を保存しました。`; }
+  catch (e) {
+    if (e && e.code === 'declined') return;
+    if (e && e.code === 'rate_limited') { $('#resultText').textContent = '保存の確認がすでに開いています。そちらを確認してください。'; return; }
+    $('#saveBtn').hidden = true; $('#resultText').textContent = 'この表示環境では保存できません。動画を右クリック（長押し）して保存してください。';
+  }
+});
+if (window.claude && window.claude.use) window.claude.use('downloads').then(d => { downloads = d; }).catch(() => {});
+
+/* ---------- boot ---------- */
+if (!initGL()) { const w = $('#glWarn'); w.textContent = glError; w.hidden = false; }
+setSize(); syncRatio(); buildFxList(); buildTargets(); buildScenes(); buildTimeline();
+t = 1.8; render();
+ensureFonts().then(() => { render(); setPlaying(true); });
+})();
+</script>
+
+</body>
+</html>
