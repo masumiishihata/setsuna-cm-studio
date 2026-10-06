@@ -51,6 +51,13 @@ details.lay[open] summary{color:var(--fg)}
 .laygrid input[type=range]{accent-color:var(--brass);width:100%;min-width:0}
 .laygrid output{font-variant-numeric:tabular-nums;text-align:right;color:var(--muted)}
 .quick{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px}
+.colrow{grid-column:1/-1;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.colrow label{min-width:3em}
+.colrow input[type=color]{width:36px;height:26px;padding:0;border:1px solid var(--line);border-radius:4px;background:none;cursor:pointer}
+.seg.mini button{padding:4px 12px;font-size:12px}
+.swatches{display:flex;gap:4px;flex-wrap:wrap}
+.swatch{width:20px;height:20px;border-radius:50%;border:1px solid var(--line);cursor:pointer;padding:0}
+.swatch[aria-pressed="true"]{outline:2px solid var(--brass);outline-offset:1px}
 .layhead{grid-column:1/-1;font-size:11px;letter-spacing:.12em;color:var(--brass);margin-top:4px}
 .quick button{border:1px solid var(--line);background:transparent;border-radius:4px;padding:3px 8px;cursor:pointer;font-size:12px;color:var(--fg)}
 .quick button:hover{border-color:var(--muted)}
@@ -108,6 +115,7 @@ details.cat summary .cnt{margin-left:auto;margin-right:10px;font-size:11px;color
 .target{display:flex;flex-direction:column;gap:8px;border:1px solid var(--brass);border-radius:6px;padding:10px 12px;background:var(--panel)}
 .target label{font-size:12px;color:var(--muted)}
 .target select{font-weight:700}
+#layerSeg button{font-weight:700}
 .target .chk{display:flex;gap:8px;align-items:center;color:var(--fg);font-size:13px}
 .fxbtn{border:1px solid var(--line);background:transparent;border-radius:4px;height:26px;padding:0 8px;cursor:pointer;color:var(--muted);font-size:11px}
 .fxbtn:hover{color:var(--fg);border-color:var(--muted)}
@@ -187,7 +195,11 @@ details.cat summary .cnt{margin-left:auto;margin-right:10px;font-size:11px;color
       <div class="target">
         <label for="fxTarget">エフェクトをかける対象</label>
         <select id="fxTarget"></select>
-        <label class="chk" id="useGlobalRow" hidden><input type="checkbox" id="useGlobal" checked> 全体のエフェクトもこの場面に使う</label>
+        <div class="seg" id="layerSeg" role="group" aria-label="エフェクトをかけるレイヤー">
+          <button type="button" data-l="video">映像のエフェクト</button>
+          <button type="button" data-l="text">文字のエフェクト</button>
+        </div>
+        <label class="chk" id="useGlobalRow" hidden><input type="checkbox" id="useGlobal" checked> <span id="useGlobalTxt">全体のエフェクトもこの場面に使う</span></label>
         <p class="note" id="targetHint"></p>
       </div>
       <div class="fxbar">
@@ -214,7 +226,11 @@ details.cat summary .cnt{margin-left:auto;margin-right:10px;font-size:11px;color
         </select>
         <label for="trDur">つなぎの長さ</label>
         <input type="range" id="trDur" min="0.3" max="1.6" step="0.05" value="0.8" aria-label="トランジションの長さ">
-        <label class="chk"><input type="checkbox" id="textFx" checked> 文字にもエフェクトをかける</label>
+        <label for="textMode">文字のエフェクト</label>
+        <select id="textMode">
+          <option value="own">文字だけ独立させる</option>
+          <option value="same">映像と同じエフェクトをかける</option>
+        </select>
       </div>
       <div id="fxList" class="sec"></div>
       <p class="note">トランジションは、そのシーンから次へのつなぎに使います。複数オンにすると順番に使います。シーン側でトランジションをオンにすると、そのつなぎは全体の設定より優先されます。</p>
@@ -353,22 +369,22 @@ function sampleImage(kind) {
 
 /* ---------- state ---------- */
 const RATIOS = { '9:16': [9, 16], '16:9': [16, 9], '1:1': [1, 1] };
-const defLay = isEnd => ({ x: .5, y: null, s: 1, align: 'center', shade: true, sx: null, sy: null, ss: 1 });
+const defLay = isEnd => ({ x: .5, y: null, s: 1, align: 'center', shade: true, sx: null, sy: null, ss: 1, col: '#ffffff', scol: '#ffffff', dir: 'h', sdir: 'h', wx: 1, hy: 1 });
 const state = {
-  ratio: '9:16', quality: 1080, fps: '30', editMode: true, textStyle: 'kinetic', font: 'gothic', textFx: true, trDur: .8,
+  ratio: '9:16', quality: 1080, fps: '30', editMode: true, textStyle: 'kinetic', font: 'gothic', textMode: 'own', trDur: .8,
   scenes: [
     { text: '季節を、\nまとう。', sub: 'AUTUMN COLLECTION', dur: 3.4 },
     { text: '一枚の絵に、\n物語を。', sub: 'AI ART WORKS', dur: 3.4 },
     { text: '新作、公開中。', sub: 'NOW ON INSTAGRAM', dur: 3.2 }
-  ].map((s, i) => ({ ...s, img: sampleImage(i), sample: true, thumb: null, fx: {}, useGlobal: true, lay: defLay(false) })),
+  ].map((s, i) => ({ ...s, img: sampleImage(i), sample: true, thumb: null, fx: {}, useGlobal: true, tfx: {}, useGlobalT: true, lay: defLay(false) })),
   end: { brand: 'YOUR NAME', sub: '@your_account' },
-  endFx: { fx: {}, useGlobal: true },
-  endLay: { x: .5, y: null, s: 1, align: 'center', shade: false, sx: null, sy: null, ss: 1 },
+  endFx: { fx: {}, useGlobal: true, tfx: {}, useGlobalT: true },
+  endLay: { x: .5, y: null, s: 1, align: 'center', shade: false, sx: null, sy: null, ss: 1, col: '#ffffff', scol: '#ffffff', dir: 'h', sdir: 'h', wx: 1, hy: 1 },
   bgm: null, bgmUrl: null
 };
 const END_DUR = 2.8;
 let W = 1080, H = 1920, U = 10.8;
-const baseA = document.createElement('canvas'), baseB = document.createElement('canvas');
+const baseA = document.createElement('canvas'), baseB = document.createElement('canvas'), textCv = document.createElement('canvas');
 
 /* ---------- shaders ---------- */
 const VERT = `attribute vec2 a;varying vec2 vUv;void main(){vUv=a*.5+.5;gl_Position=vec4(a,0.,1.);}`;
@@ -608,7 +624,7 @@ void main(){
  gl_FragColor=vec4(clamp(c,0.,1.),1.);
 }
 `;
-const PASS3 = `precision mediump float;varying vec2 vUv;uniform sampler2D t;void main(){gl_FragColor=vec4(texture2D(t,vUv).rgb,1.);}`;
+const PASS3 = `precision mediump float;varying vec2 vUv;uniform sampler2D t;uniform float uMatte;uniform vec3 uTint;void main(){vec3 c=texture2D(t,vUv).rgb;if(uMatte>.5){float a=max(c.r,max(c.g,c.b));gl_FragColor=vec4((a>.002?c/a:vec3(0.))*uTint,a);}else gl_FragColor=vec4(c,1.);}`;
 
 /* ---------- effect catalog ---------- */
 const CATS = [
@@ -679,6 +695,14 @@ const DEFAULT_ON = ['kenburns', 'rgb', 'bloom', 'leak', 'grain', 't_digital', 't
 DEFAULT_ON.forEach(id => fxState[id].on = true);
 fxState.rgb.amt = .3;
 const GLOBAL_ONLY = ['loop'];
+// text layer: its own rack, limited to effects that make sense on letters
+const TEXT_CATS = ['glitch', 'film', 'blur', 'fb', 'distort', 'style'];
+const textFxState = {};
+function effTextFor(item) {
+  const o = ownerOf(item), useG = o.useGlobalT !== false, res = {}, own = o.tfx || {};
+  SHADER_FX.forEach(f => { const s = own[f.id], g = textFxState[f.id]; res[f.id] = s && s.on ? s.amt : (useG && g && g.on ? g.amt : 0); });
+  return res;
+}
 // CUR holds the effective strengths for the scene being drawn; null means the global rack.
 let CUR = null;
 const on = id => (CUR ? CUR[id] : (fxState[id].on ? fxState[id].amt : 0)) > 0;
@@ -693,6 +717,10 @@ function effFor(item) {
 
 /* ---------- WebGL ---------- */
 let gl = null, glc = null, P1, P2, P3, quad, texA, texB, fboS, fbo = [], cur = 0, hasPrev = false, glError = '';
+// each layer keeps its own previous frame so trails and echoes of the text never mix with the picture
+const vLayer = { get fbo() { return fbo; }, get cur() { return cur; }, set cur(v) { cur = v; }, get hasPrev() { return hasPrev; }, set hasPrev(v) { hasPrev = v; } };
+const tLayer = { fbo: [], cur: 0, hasPrev: false }, tLayerSub = { fbo: [], cur: 0, hasPrev: false };
+const ZERO_TF = { flick: 0, freeze: 0, blend: 0, flash: 0 };
 const Fbuf = new Float32Array(NV * 4);
 function shaderSrc(body) {
   const defs = SHADER_FX.map((f, k) => `#define fx_${f.id} F[${k >> 2}].${'xyzw'[k & 3]}`).join('\n');
@@ -722,7 +750,7 @@ function mkTex(w, h) {
 function mkFbo(w, h) { const t = mkTex(w, h), f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0); return { t, f }; }
 function initGL() {
   glc = document.createElement('canvas');
-  gl = glc.getContext('webgl', { preserveDrawingBuffer: true, alpha: false, antialias: false, premultipliedAlpha: false });
+  gl = glc.getContext('webgl', { preserveDrawingBuffer: true, alpha: true, antialias: false, premultipliedAlpha: false });
   if (!gl) { glError = 'このブラウザではWebGLが使えないため、エフェクトなしで表示しています。'; return false; }
   try { P1 = program(shaderSrc(PASS1)); P2 = program(shaderSrc(PASS2)); P3 = program(PASS3); }
   catch (e) { glError = 'エフェクトの準備に失敗しました: ' + String(e.message || e).slice(0, 200); console.error(e); gl = null; return false; }
@@ -735,12 +763,15 @@ function initGL() {
 function sizeGL() {
   if (!gl) return;
   glc.width = W; glc.height = H;
-  [fboS, ...fbo].forEach(o => { if (o) { gl.deleteTexture(o.t); gl.deleteFramebuffer(o.f); } });
+  [fboS, ...fbo, ...tLayer.fbo, ...tLayerSub.fbo].forEach(o => { if (o) { gl.deleteTexture(o.t); gl.deleteFramebuffer(o.f); } });
   fboS = mkFbo(W, H); fbo = [mkFbo(W, H), mkFbo(W, H)]; hasPrev = false;
+  tLayer.fbo = [mkFbo(W, H), mkFbo(W, H)]; tLayer.cur = 0; tLayer.hasPrev = false;
+  tLayerSub.fbo = [mkFbo(W, H), mkFbo(W, H)]; tLayerSub.cur = 0; tLayerSub.hasPrev = false;
 }
 function upload(t, canvas) { gl.bindTexture(gl.TEXTURE_2D, t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas); }
 function bindTex(unit, t, loc) { gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t); if (loc) gl.uniform1i(loc, unit); }
 function runGL(o) {
+  const L = o.layer || vLayer;
   SHADER_FX.forEach((f, k) => { Fbuf[k] = o.fxA[f.id] * (1 - o.k) + o.fxB[f.id] * o.k; });
   gl.viewport(0, 0, W, H);
   // pass 1
@@ -750,16 +781,16 @@ function runGL(o) {
   bindTex(0, texA, P1.u.tA); bindTex(1, texB, P1.u.tB);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   // pass 2
-  const out = fbo[cur], prev = fbo[1 - cur];
+  const out = L.fbo[L.cur], prev = L.fbo[1 - L.cur];
   gl.bindFramebuffer(gl.FRAMEBUFFER, out.f); gl.useProgram(P2.p);
   gl.uniform2f(P2.u.res, W, H); gl.uniform1f(P2.u.time, o.time); gl.uniform4fv(P2.u.F, Fbuf);
-  gl.uniform1f(P2.u.hasPrev, hasPrev ? 1 : 0); gl.uniform1f(P2.u.uCrash, o.crash); gl.uniform4f(P2.u.uTF, o.tf.flick, o.tf.freeze, o.tf.blend, o.tf.flash);
+  gl.uniform1f(P2.u.hasPrev, L.hasPrev ? 1 : 0); gl.uniform1f(P2.u.uCrash, o.crash); gl.uniform4f(P2.u.uTF, o.tf.flick, o.tf.freeze, o.tf.blend, o.tf.flash);
   bindTex(0, fboS.t, P2.u.tS); bindTex(1, prev.t, P2.u.tPrev);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   // pass 3 to screen
-  gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.useProgram(P3.p);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.useProgram(P3.p); gl.uniform1f(P3.u.uMatte, o.matte ? 1 : 0); { const tn = o.tint || [1, 1, 1]; gl.uniform3f(P3.u.uTint, tn[0], tn[1], tn[2]); }
   bindTex(0, out.t, P3.u.t); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-  cur = 1 - cur; hasPrev = true;
+  L.cur = 1 - L.cur; L.hasPrev = true;
 }
 
 /* ---------- time & camera ---------- */
@@ -799,11 +830,11 @@ function drawCam(g, img, c, xOff = 0) {
 /* ---------- persistence (this browser only) ---------- */
 const STORE = 'setsuna-cm-fx-v1';
 function saveSettings() {
-  try { localStorage.setItem(STORE, JSON.stringify({ fps: state.fps, editMode: state.editMode, fx: fxState, sceneFx: state.scenes.map(s => ({ fx: s.fx, useGlobal: s.useGlobal })), endFx: state.endFx, textStyle: state.textStyle, font: state.font, textFx: state.textFx, trDur: state.trDur })); } catch (_) {}
+  try { localStorage.setItem(STORE, JSON.stringify({ fps: state.fps, editMode: state.editMode, fx: fxState, sceneFx: state.scenes.map(s => ({ fx: s.fx, useGlobal: s.useGlobal, tfx: s.tfx, useGlobalT: s.useGlobalT })), endFx: state.endFx, textFxG: textFxState, textStyle: state.textStyle, font: state.font, textMode: state.textMode, trDur: state.trDur })); } catch (_) {}
 }
 try {
   const s = JSON.parse(localStorage.getItem(STORE) || 'null');
-  if (s && s.fx) { Object.keys(s.fx).forEach(k => { if (fxState[k]) { fxState[k].on = !!s.fx[k].on; fxState[k].amt = +s.fx[k].amt || fxState[k].amt; } }); if (Array.isArray(s.sceneFx)) s.sceneFx.forEach((x, k) => { if (state.scenes[k] && x && x.fx) { state.scenes[k].fx = x.fx; state.scenes[k].useGlobal = x.useGlobal !== false; } }); if (s.endFx && s.endFx.fx) state.endFx = { fx: s.endFx.fx, useGlobal: s.endFx.useGlobal !== false }; if (s.fps) state.fps = String(s.fps); if (s.editMode === false) state.editMode = false; Object.assign(state, { textStyle: s.textStyle || state.textStyle, font: s.font || state.font, textFx: s.textFx !== false, trDur: +s.trDur || state.trDur }); }
+  if (s && s.fx) { Object.keys(s.fx).forEach(k => { if (fxState[k]) { fxState[k].on = !!s.fx[k].on; fxState[k].amt = +s.fx[k].amt || fxState[k].amt; } }); if (Array.isArray(s.sceneFx)) s.sceneFx.forEach((x, k) => { if (state.scenes[k] && x && x.fx) { state.scenes[k].fx = x.fx; state.scenes[k].useGlobal = x.useGlobal !== false; state.scenes[k].tfx = x.tfx || {}; state.scenes[k].useGlobalT = x.useGlobalT !== false; } }); if (s.endFx && s.endFx.fx) state.endFx = { fx: s.endFx.fx, useGlobal: s.endFx.useGlobal !== false, tfx: s.endFx.tfx || {}, useGlobalT: s.endFx.useGlobalT !== false }; if (s.textFxG) Object.assign(textFxState, s.textFxG); if (s.fps) state.fps = String(s.fps); if (s.editMode === false) state.editMode = false; Object.assign(state, { textStyle: s.textStyle || state.textStyle, font: s.font || state.font, textMode: s.textMode || (s.textFx === false ? 'own' : s.textFx === true ? 'same' : state.textMode), trDur: +s.trDur || state.trDur }); }
 } catch (_) {}
 
 /* ---------- size ---------- */
@@ -811,7 +842,7 @@ function setSize() {
   const [a, b] = RATIOS[state.ratio], q = state.quality;
   if (a < b) { W = q; H = Math.round(q * b / a); } else if (a > b) { H = q; W = Math.round(q * a / b); } else { W = H = q; }
   W -= W % 2; H -= H % 2; cv.width = W; cv.height = H; U = Math.min(W, H) / 100;
-  baseA.width = baseB.width = W; baseA.height = baseB.height = H;
+  baseA.width = baseB.width = textCv.width = W; baseA.height = baseB.height = textCv.height = H;
   sizeGL(); partnerKey = '';
 }
 
@@ -823,30 +854,95 @@ const FONTS = {
   pop: sz => `400 ${sz}px "Dela Gothic One","Zen Kaku Gothic New",sans-serif`
 };
 function layY(lay, isEnd) { return lay.y ?? (isEnd ? .5 : (H > W ? .74 : .7)); }
-function drawCopy(text, sub, local, dur, isEnd, lay) {
+function drawShade(lay, isEnd) {
+  if (isEnd || lay.shade === false) return;
+  const cy = layY(lay, isEnd) * H, lo = cy > H * .5;
+  ctx.save();
+  const lg = lo ? ctx.createLinearGradient(0, cy - H * .3, 0, H) : ctx.createLinearGradient(0, cy + H * .3, 0, 0);
+  lg.addColorStop(0, 'rgba(0,0,0,0)'); lg.addColorStop(1, 'rgba(0,0,0,.6)'); ctx.fillStyle = lg;
+  if (lo) ctx.fillRect(0, cy - H * .3, W, H - cy + H * .3); else ctx.fillRect(0, 0, W, cy + H * .3);
+  ctx.restore();
+}
+// vertical writing: which glyphs turn sideways, which shift to the upper right
+const V_ROT = 'ー〜…‥―－-~=（）()「」『』【】［］[]〈〉《》<>｛｝{}', V_PUN = '、。，．,.', V_SMALL = 'ぁぃぅぇぉっゃゅょゎァィゥェォッャュョヮヵヶ';
+const isLatin = ch => /[A-Za-z]/.test(ch);
+function vGlyph(ch, x, y, size) {
+  ctx.save(); ctx.translate(x, y);
+  if (V_ROT.includes(ch) || isLatin(ch)) ctx.rotate(Math.PI / 2);
+  else if (V_PUN.includes(ch)) ctx.translate(size * .34, -size * .34);
+  else if (V_SMALL.includes(ch)) ctx.translate(size * .09, -size * .09);
+  ctx.fillText(ch, 0, 0); ctx.restore();
+}
+// advance of one glyph down a column (sideways latin uses its own width)
+const vAdv = (ch, size, tr) => (isLatin(ch) ? ctx.measureText(ch).width : size) + tr;
+function drawCopy(text, sub, local, dur, isEnd, lay, plain = false, only = null) {
   lay = lay || defLay(isEnd);
   const style = state.textStyle; if (style === 'none') return;
   const ls = lines(text), font = FONTS[state.font];
   if (!ls.length && !sub) return;
-  const sc = lay.s || 1, al = lay.align || 'center';
-  const size = fitSize(ls.length ? ls : [' '], font, U * (isEnd ? 10 : (H > W ? 9 : 8)) * sc, W * .92, .04);
+  const sc = lay.s || 1, al = lay.align || 'center', vert = lay.dir === 'v', svert = lay.sdir === 'v';
+  const wx = lay.wx || 1, hy = lay.hy || 1;
+  const base = U * (isEnd ? 10 : (H > W ? 9 : 8)) * sc;
+  let size;
+  if (!vert) size = fitSize(ls.length ? ls : [' '], font, base, W * .92 / wx, .04);
+  else { const n = Math.max(1, ...ls.map(l => [...l].length)); size = Math.min(base, H * .86 / (n * 1.06 * hy), W * .92 / (Math.max(1, ls.length) * 1.35 * wx)); }
   const lh = size * 1.25, block = lh * Math.max(0, ls.length - 1);
   const cx = lay.x * W, cy = layY(lay, isEnd) * H;
   const y0 = cy - block / 2 + size * .35;
   const fo = isEnd ? 1 - seg(local, dur - .25, dur) : 1 - seg(local, dur - .35, dur);
   ctx.save();
-  if (!isEnd && lay.shade !== false) {
-    const lo = cy > H * .5;
-    const lg = lo ? ctx.createLinearGradient(0, cy - H * .3, 0, H) : ctx.createLinearGradient(0, cy + H * .3, 0, 0);
-    lg.addColorStop(0, 'rgba(0,0,0,0)'); lg.addColorStop(1, 'rgba(0,0,0,.6)'); ctx.fillStyle = lg;
-    if (lo) ctx.fillRect(0, cy - H * .3, W, H - cy + H * .3); else ctx.fillRect(0, 0, W, cy + H * .3);
-  }
-  ctx.font = font(size); ctx.fillStyle = '#fff'; ctx.textBaseline = 'alphabetic';
-  ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = U * 1.5;
+  if (!plain) drawShade(lay, isEnd);
+  ctx.font = font(size); ctx.fillStyle = plain ? '#fff' : (lay.col || '#fff'); ctx.textBaseline = 'alphabetic';
+  ctx.shadowColor = plain ? 'rgba(0,0,0,0)' : 'rgba(0,0,0,.45)'; ctx.shadowBlur = U * 1.5;
   const tr = size * .04;
   const leftOf = w => al === 'left' ? cx : al === 'right' ? cx - w : cx - w / 2;
-  if (ls.length) { const mw = Math.max(...ls.map(l => trackedWidth(l, tr))), bl = leftOf(mw); lay._box = [bl, y0 - size * .95, bl + mw, y0 + block + size * .3]; } else lay._box = null;
-  if (style === 'fade') {
+  // stretch (wide / tall letters) around the copy's centre
+  const stretch = box => box && [cx + (box[0] - cx) * wx, cy + (box[1] - cy) * hy, cx + (box[2] - cx) * wx, cy + (box[3] - cy) * hy];
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(wx, hy); ctx.translate(-cx, -cy);
+  if (vert) {
+    // columns run top to bottom, first line on the right
+    const cols = ls.map(l => [...l]), colGap = size * 1.35, advs = cols.map(c => c.map(ch => vAdv(ch, size, tr)));
+    const colH = advs.map(a => a.reduce((s, v) => s + v, 0)), blockH = Math.max(0, ...colH);
+    const xR = cx + colGap * (cols.length - 1) / 2, yT = cy - blockH / 2;
+    lay._box = cols.length ? stretch([xR - colGap * (cols.length - 1) - size * .6, yT, xR + size * .6, yT + blockH]) : null;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const each = (src, cb) => { let n = 0; src.forEach((c, j) => { let y = yT; c.forEach((ch, k) => { const a = advs[j][k] ?? size; cb(ch, xR - j * colGap, y + a / 2, j, k, n++); y += a; }); }); };
+    if (only === 'sub') { /* subtext only */ }
+    else if (style === 'fade') each(cols, (ch, x, y, j) => { const a = outCubic(seg(local, .3 + j * .18, .9 + j * .18)); ctx.globalAlpha = a * fo; vGlyph(ch, x, y - (1 - a) * size * .4, size); });
+    else if (style === 'typo') {
+      cols.forEach((c, j) => {
+        const e = outExpo(seg(local, .25 + j * .15, 1 + j * .15)), x = xR - j * colGap;
+        ctx.save(); ctx.beginPath(); ctx.rect(x - size * .7, yT - size * .1, size * 1.4, blockH + size * .2); ctx.clip(); ctx.globalAlpha = fo;
+        let y = yT; c.forEach((ch, k) => { const a = advs[j][k]; vGlyph(ch, x, y + a / 2 - (1 - e) * blockH * 1.05, size); y += a; });
+        ctx.restore();
+      });
+      const bh = blockH * .3 * outExpo(seg(local, .5, 1.2)); ctx.globalAlpha = fo; ctx.shadowBlur = 0;
+      ctx.fillRect(xR - colGap * (cols.length - 1) - size * .95, yT, Math.max(2, U * .35 * sc), bh);
+    } else if (style === 'kinetic') {
+      each(cols, (ch, x, y, j, k, n) => {
+        const t0 = .25 + n * .045, e = seg(local, t0, t0 + .55), dir = n % 2 ? 1 : -1;
+        const q = isEnd ? 0 : seg(local, dur - .55 + n * .012, dur - .2 + n * .012);
+        if (e <= 0) return;
+        const s = .15 + .85 * outBack(e), wob = Math.sin(local * 3 + n + 1) * size * .02 * (e >= 1 ? 1 : 0);
+        ctx.save(); ctx.globalAlpha = Math.min(1, e * 2) * (1 - q);
+        ctx.translate(x + wob + (1 - outCubic(e)) * size * 1.2 * dir, y - q * q * H * .25);
+        ctx.rotate((1 - outCubic(e)) * .9 * dir + q * dir * .8); ctx.scale(s, s);
+        vGlyph(ch, 0, 0, size); ctx.restore();
+      });
+    } else if (style === 'type') {
+      const N = cols.reduce((a, c) => a + c.length, 0), shown = Math.floor(N * seg(local, .3, .3 + N * .06));
+      let last = null; ctx.globalAlpha = fo;
+      each(cols, (ch, x, y, j, k, n) => { if (n < shown) { vGlyph(ch, x, y, size); last = [x, y + advs[j][k] / 2]; } });
+      if (last && shown < N + 1 && Math.floor(local * 2.5) % 2 === 0) { ctx.shadowBlur = 0; ctx.fillRect(last[0] - size * .45, last[1] + size * .08, size * .9, size * .4); }
+    } else if (style === 'decode') {
+      const dec = cols.map((c, j) => [...decode(c.join(''), seg(local, .25, 1.25) - j * .08, frameRand(local, j + 3))]);
+      ctx.globalAlpha = fo;
+      dec.forEach((c, j) => { let y = yT; c.forEach((ch, k) => { const a = advs[j][k] ?? size; if (ch) vGlyph(ch, xR - j * colGap, y + a / 2, size); y += a; }); });
+    }
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  } else {
+  if (ls.length) { const mw = Math.max(...ls.map(l => trackedWidth(l, tr))), bl = leftOf(mw); lay._box = stretch([bl, y0 - size * .95, bl + mw, y0 + block + size * .3]); } else lay._box = null;
+  if (only === 'sub') { /* subtext only */ } else if (style === 'fade') {
     ls.forEach((l, li) => { const a = outCubic(seg(local, .3 + li * .18, .9 + li * .18)); ctx.globalAlpha = a * fo; drawTracked(l, cx, y0 + li * lh + (1 - a) * size * .4, tr, al); });
   } else if (style === 'typo') {
     ls.forEach((l, li) => {
@@ -881,17 +977,33 @@ function drawCopy(text, sub, local, dur, isEnd, lay) {
   } else if (style === 'decode') {
     ls.forEach((l, li) => { ctx.globalAlpha = fo; drawTracked(decode(l, seg(local, .25, 1.25) - li * .08, frameRand(local, li + 3)), cx, y0 + li * lh, tr, al); });
   }
-  if (sub) {
-    ctx.shadowBlur = U; ctx.globalAlpha = seg(local, .6, 1.1) * fo;
+  }
+  ctx.restore();
+  if (sub && only !== 'copy') {
+    ctx.shadowBlur = U; ctx.globalAlpha = seg(local, .6, 1.1) * fo; ctx.fillStyle = plain ? '#fff' : (lay.scol || '#fff');
     const ss = U * (isEnd ? 3 : 2.6) * (lay.ss || 1), str = style === 'decode' ? decode(sub, seg(local, .6, 1.4), frameRand(local, 9)) : sub;
     ctx.font = `400 ${ss}px "Share Tech Mono","Zen Kaku Gothic New",monospace`;
-    const syAuto = isEnd ? y0 + block + size * .5 + ss * 2 : y0 - size - ss;
-    lay._subAuto = [cx / W, syAuto / H];
-    const sx = lay.sx != null ? lay.sx * W : cx, sy = lay.sy != null ? lay.sy * H : syAuto;
-    const sw = trackedWidth(sub, U * .8), sl = al === 'left' ? sx : al === 'right' ? sx - sw : sx - sw / 2;
-    lay._sbox = [sl, sy - ss * .95, sl + sw, sy + ss * .3];
-    drawTracked(str, sx, sy, U * .8, al);
-  } else lay._sbox = null;
+    const bx = lay._box, str0 = [...sub], sTr = U * .8;
+    // automatic place next to the copy, depending on which way each one is written
+    let sxAuto, syAuto;
+    if (!vert && !svert) { sxAuto = cx; syAuto = isEnd ? y0 + block + size * .5 + ss * 2 : y0 - size - ss; if (bx) syAuto = isEnd ? bx[3] + ss * 1.6 : bx[1] - ss * .9; }
+    else if (vert && !svert) { sxAuto = cx; syAuto = (bx ? bx[3] : cy) + ss * 1.8; }
+    else if (!vert && svert) { sxAuto = (bx ? bx[0] : cx) - ss * 1.4; syAuto = bx ? bx[1] : cy; }
+    else { sxAuto = (bx ? bx[2] : cx) + ss * 1.3; syAuto = bx ? bx[1] : cy; }
+    lay._subAuto = [sxAuto / W, syAuto / H];
+    const sx = lay.sx != null ? lay.sx * W : sxAuto, sy = lay.sy != null ? lay.sy * H : syAuto;
+    if (svert) {
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const advs = str0.map(ch => vAdv(ch, ss, sTr * .4)), len = advs.reduce((a, v) => a + v, 0);
+      lay._sbox = [sx - ss * .7, sy, sx + ss * .7, sy + len];
+      let y = sy; [...str].forEach((ch, k) => { const a = advs[k] ?? ss; vGlyph(ch, sx, y + a / 2, ss); y += a; });
+      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    } else {
+      const sw = trackedWidth(sub, sTr), sl = al === 'left' ? sx : al === 'right' ? sx - sw : sx - sw / 2;
+      lay._sbox = [sl, sy - ss * .95, sl + sw, sy + ss * .3];
+      drawTracked(str, sx, sy, sTr, al);
+    }
+  } else if (only !== 'copy') lay._sbox = null;
   ctx.restore();
 }
 
@@ -954,15 +1066,16 @@ function renderFrame(t) {
       if (trs.length) { const ni = (i + 1) % m; b = { i: ni, local: local - it[i].dur }; prog = .5 - (it[i].dur - local) / td; trIdx = TR_FX.indexOf(trs[i % trs.length]); }
     }
   }
-  const info = drawItem(baseA, it[a.i], a.local, state.textFx, effs[a.i]);
-  if (b) { drawItem(baseB, it[b.i], b.local, state.textFx, effs[b.i]); partnerKey = ''; }
+  const same = state.textMode === 'same';
+  const info = drawItem(baseA, it[a.i], a.local, same, effs[a.i]);
+  if (b) { drawItem(baseB, it[b.i], b.local, same, effs[b.i]); partnerKey = ''; }
   else if (gl && NEEDS_PARTNER.some(id => effs[a.i][id] > 0)) {
-    const pi = (a.i + 1) % m, key = `${pi}|${W}|${H}|${state.textFx}`;
+    const pi = (a.i + 1) % m, key = `${pi}|${W}|${H}|${same}`;
     if (key !== partnerKey) { drawItem(baseB, it[pi], 1.4, false, effs[pi]); partnerKey = key; upload(texB, baseB); }
   }
   CUR = null;
   const fxA = effs[a.i], fxB = b ? effs[b.i] : fxA, kB = prog < 0 ? 0 : clamp((prog - .3) / .4);
-  if (Math.abs(t - lastT) > .25 || t < lastT) hasPrev = false;
+  if (Math.abs(t - lastT) > .25 || t < lastT) { hasPrev = false; tLayer.hasPrev = tLayerSub.hasPrev = false; }
   lastT = t;
   if (gl) {
     upload(texA, baseA); if (b) upload(texB, baseB);
@@ -972,12 +1085,34 @@ function renderFrame(t) {
     mainCtx.drawImage(baseA, 0, 0);
     if (b && prog >= 0) { mainCtx.globalAlpha = clamp(prog); mainCtx.drawImage(baseB, 0, 0); mainCtx.globalAlpha = 1; }
   }
-  if (!state.textFx) {
-    const side = prog >= .5 && b ? b : a, item = it[side.i];
-    if (item.kind === 'scene') { const sc = state.scenes[item.k]; drawCopy(sc.text, sc.sub, side.local, item.dur, false, sc.lay); }
-    else drawCopy(state.end.brand, state.end.sub, side.local, item.dur, true, state.endLay);
-  }
+  if (!same) drawTextLayer(it, prog >= .5 && b ? b : a, t);
   return a.i;
+}
+
+/* text as its own layer: drawn white on black, run through the effect pipeline with the text rack,
+   turned back into a transparent layer (brightness becomes opacity) and laid over the picture */
+const hexRGB = h => { const n = parseInt((h || '#ffffff').slice(1), 16); return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255]; };
+function drawTextLayer(it, side, t) {
+  const item = it[side.i], isEnd = item.kind !== 'scene';
+  const sc = isEnd ? null : state.scenes[item.k], lay = isEnd ? state.endLay : sc.lay;
+  const call = (plain, only) => isEnd ? drawCopy(state.end.brand, state.end.sub, side.local, item.dur, true, lay, plain, only) : drawCopy(sc.text, sc.sub, side.local, item.dur, false, lay, plain, only);
+  const tEff = effTextFor(item);
+  const has = gl && state.textStyle !== 'none' && SHADER_FX.some(f => tEff[f.id] > 0);
+  if (!has) { tLayer.hasPrev = tLayerSub.hasPrev = false; call(false); return; }
+  if (isEnd || lines(sc.text).length || sc.sub) drawShade(lay, isEnd);
+  // the effects work on a white mask; the colour is applied afterwards, so copy and subtext in different colours get a pass each
+  const cc = (lay.col || '#ffffff').toLowerCase(), scc = (lay.scol || '#ffffff').toLowerCase();
+  const hasSub = isEnd ? !!state.end.sub : !!sc.sub;
+  const passes = hasSub && cc !== scc ? [['copy', cc, tLayer], ['sub', scc, tLayerSub]] : [[null, cc, tLayer]];
+  if (passes.length === 1) tLayerSub.hasPrev = false;
+  const tc = textCv.getContext('2d');
+  for (const [only, col, L] of passes) {
+    tc.setTransform(1, 0, 0, 1, 0, 0); tc.globalAlpha = 1; tc.globalCompositeOperation = 'source-over'; tc.fillStyle = '#000'; tc.fillRect(0, 0, W, H);
+    ctx = tc; call(true, only); ctx = mainCtx;
+    upload(texA, textCv);
+    runGL({ time: t, prog: -1, tr: 0, dolly: 0, crash: 0, tf: ZERO_TF, fxA: tEff, fxB: tEff, k: 0, layer: L, matte: 1, tint: hexRGB(col) });
+    mainCtx.save(); mainCtx.shadowColor = 'rgba(0,0,0,.45)'; mainCtx.shadowBlur = U * 1.5; mainCtx.drawImage(glc, 0, 0); mainCtx.restore();
+  }
 }
 
 /* ---------- fonts ---------- */
@@ -1027,9 +1162,16 @@ $('#tabAsset').addEventListener('click', () => selectTab(false));
 
 /* ---------- effect rack UI ---------- */
 /* target: 'all' = whole video, a scene index, or 'end' */
-let target = 'all';
+let target = 'all', layer = 'video';
 const targetObj = () => target === 'all' ? null : target === 'end' ? state.endFx : state.scenes[+target];
-function own() { const o = targetObj(); return o ? o.fx : fxState; }
+function own() {
+  const o = targetObj();
+  if (layer === 'text') { if (!o) return textFxState; if (!o.tfx) o.tfx = {}; return o.tfx; }
+  return o ? o.fx : fxState;
+}
+const globalRack = () => layer === 'text' ? textFxState : fxState;
+const useKey = () => layer === 'text' ? 'useGlobalT' : 'useGlobal';
+function syncLayer() { document.querySelectorAll('#layerSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.l === layer))); }
 function ownGet(id) { const o = own(); if (!o[id]) o[id] = { on: false, amt: FXMAP[id].def ?? 1 }; return o[id]; }
 const targetName = () => target === 'all' ? '全体' : target === 'end' ? 'エンディング' : `シーン ${String(+target + 1).padStart(2, '0')}`;
 function buildTargets() {
@@ -1037,9 +1179,9 @@ function buildTargets() {
   const sel = $('#fxTarget'); sel.innerHTML = '';
   const add = (v, txt) => { const o = document.createElement('option'); o.value = v; o.textContent = txt; sel.append(o); };
   add('all', '全体（すべてのシーン）');
-  state.scenes.forEach((s, k) => { const n = Object.values(s.fx).filter(x => x.on).length; add(String(k), `シーン ${String(k + 1).padStart(2, '0')}${n ? `（独自 ${n}）` : ''}${s.useGlobal === false ? '・全体オフ' : ''}`); });
-  const ne = Object.values(state.endFx.fx).filter(x => x.on).length;
-  add('end', `エンディング${ne ? `（独自 ${ne}）` : ''}${state.endFx.useGlobal === false ? '・全体オフ' : ''}`);
+  state.scenes.forEach((s, k) => { const n = Object.values(s.fx).filter(x => x.on).length, nt = Object.values(s.tfx || {}).filter(x => x.on).length; add(String(k), `シーン ${String(k + 1).padStart(2, '0')}${n ? `（独自 ${n}）` : ''}${nt ? `（文字 ${nt}）` : ''}${s.useGlobal === false ? '・全体オフ' : ''}`); });
+  const ne = Object.values(state.endFx.fx).filter(x => x.on).length, nte = Object.values(state.endFx.tfx || {}).filter(x => x.on).length;
+  add('end', `エンディング${ne ? `（独自 ${ne}）` : ''}${nte ? `（文字 ${nte}）` : ''}${state.endFx.useGlobal === false ? '・全体オフ' : ''}`);
   sel.value = target;
 }
 function setTarget(v, jump = true) {
@@ -1050,7 +1192,8 @@ function setTarget(v, jump = true) {
   }
 }
 $('#fxTarget').addEventListener('change', e => setTarget(e.target.value));
-$('#useGlobal').addEventListener('change', e => { const o = targetObj(); if (o) { o.useGlobal = e.target.checked; fxChanged(); } });
+$('#useGlobal').addEventListener('change', e => { const o = targetObj(); if (o) { o[useKey()] = e.target.checked; fxChanged(); } });
+$('#layerSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; layer = b.dataset.l; syncLayer(); syncFxUI(); });
 
 function buildFxList() {
   const box = $('#fxList'); box.innerHTML = '';
@@ -1073,7 +1216,11 @@ function buildFxList() {
         rg.addEventListener('input', () => { ownGet(f.id).amt = +rg.value; saveSettings(); refreshStill(); });
         row.append(rg);
       }
-      cb.addEventListener('change', () => { ownGet(f.id).on = cb.checked; if (rg) rg.disabled = !cb.checked; fxChanged(); });
+      cb.addEventListener('change', () => {
+        ownGet(f.id).on = cb.checked; if (rg) rg.disabled = !cb.checked;
+        if (layer === 'text' && cb.checked && state.textMode !== 'own') { state.textMode = 'own'; tmSel.value = 'own'; }
+        fxChanged();
+      });
       rows.append(row);
     });
     det.append(rows);
@@ -1084,17 +1231,21 @@ function buildFxList() {
   syncFxUI();
 }
 function syncFxUI() {
-  const o = own(), tObj = targetObj(), useG = !tObj || tObj.useGlobal !== false;
+  const o = own(), tObj = targetObj(), useG = !tObj || tObj[useKey()] !== false, G = globalRack(), isT = layer === 'text';
   $('#useGlobalRow').hidden = !tObj; $('#useGlobal').checked = useG;
-  $('#targetHint').textContent = tObj ? `ここでオンにした効果は${targetName()}だけにかかります。` : 'ここでオンにした効果はすべてのシーンにかかります。';
+  $('#useGlobalTxt').textContent = isT ? '全体の文字エフェクトもこの場面に使う' : '全体のエフェクトもこの場面に使う';
+  const where = tObj ? `${targetName()}` : 'すべてのシーン';
+  $('#targetHint').textContent = isT
+    ? `ここでオンにした効果は${where}の文字だけにかかり、映像には影響しません。` + (state.textMode === 'same' ? '（今は「映像と同じエフェクトをかける」設定なので、オンにすると「文字だけ独立させる」に切り替わります）' : '')
+    : `ここでオンにした効果は${where}の映像にかかります。` + (state.textMode === 'same' ? '文字にも同じ効果がかかります。' : '文字にはかかりません。');
   FX.forEach(f => {
     const s = o[f.id], isOn = !!(s && s.on), a = s ? s.amt : (f.def ?? 1);
     const row = document.querySelector(`.fx[data-id="${f.id}"]`); if (!row) return;
     row.querySelector('.sw').checked = isOn;
     const rg = row.querySelector('input[type=range]'); if (rg) { rg.disabled = !isOn; rg.value = a; }
-    row.querySelector('.inh').hidden = !(tObj && useG && !isOn && fxState[f.id].on);
+    row.querySelector('.inh').hidden = !(tObj && useG && !isOn && G[f.id] && G[f.id].on);
     row.classList.toggle('global-only', GLOBAL_ONLY.includes(f.id));
-    row.dataset.blocked = tObj && GLOBAL_ONLY.includes(f.id) ? '1' : '';
+    row.dataset.blocked = (tObj && GLOBAL_ONLY.includes(f.id)) || (isT && !TEXT_CATS.includes(f.cat)) ? '1' : '';
   });
   applyFilter();
   document.querySelectorAll('details.cat').forEach(d => {
@@ -1104,8 +1255,8 @@ function syncFxUI() {
   const box = $('#activeFx'); box.innerHTML = '';
   const act = FX.filter(f => o[f.id] && o[f.id].on);
   const lbl = document.createElement('span'); lbl.className = 'lbl';
-  const gN = FX.filter(f => fxState[f.id].on).length;
-  lbl.textContent = tObj ? `${targetName()}の独自 ${act.length}${useG ? `　＋全体 ${gN}` : '　全体オフ'}` : (act.length ? `全体 ${act.length}` : 'エフェクトなし');
+  const gN = FX.filter(f => G[f.id] && G[f.id].on).length, pre = isT ? '文字：' : '';
+  lbl.textContent = pre + (tObj ? `${targetName()}の独自 ${act.length}${useG ? `　＋全体 ${gN}` : '　全体オフ'}` : (act.length ? `全体 ${act.length}` : 'エフェクトなし'));
   box.append(lbl);
   act.forEach(f => {
     const c = document.createElement('span'); c.className = 'chip' + (f.kind === 'r' ? ' tr' : '');
@@ -1115,7 +1266,7 @@ function syncFxUI() {
     c.append(x); box.append(c);
   });
 }
-function fxChanged() { syncFxUI(); buildTargets(); buildScenes(); saveSettings(); hasPrev = false; partnerKey = ''; buildTimeline(); t = clamp(t, 0, total() - .001); refreshStill(); }
+function fxChanged() { syncFxUI(); buildTargets(); buildScenes(); saveSettings(); hasPrev = false; tLayer.hasPrev = tLayerSub.hasPrev = false; partnerKey = ''; buildTimeline(); t = clamp(t, 0, total() - .001); refreshStill(); }
 function applyFilter() {
   const q = $('#fxSearch').value.trim().toLowerCase();
   document.querySelectorAll('details.cat').forEach(d => {
@@ -1130,6 +1281,11 @@ $('#fxRandom').addEventListener('click', () => {
   const o = own(); Object.values(o).forEach(s => s.on = false);
   const set = (f, a) => { const s = ownGet(f.id); s.on = true; s.amt = a; };
   const r = Math.random, pick = (arr, n) => arr.slice().sort(() => r() - .5).slice(0, n);
+  if (layer === 'text') {
+    const soft = ['tunnel', 'izoom', 'fzoom', 'kaleido', 'mirror', 'bhole', 'leak', 'flare', 'godray', 'volume', 'proj', 'strobe', 'fractal', 'particle'];
+    pick(SHADER_FX.filter(f => TEXT_CATS.includes(f.cat) && !soft.includes(f.id)), 2).forEach(f => set(f, .4 + r() * .4));
+    state.textMode = 'own'; tmSel.value = 'own'; fxChanged(); if (!playing && !recording) setTarget(target); return;
+  }
   const heavy = ['tunnel', 'izoom', 'fzoom', 'kaleido', 'wire', 'holo', 'laser', 'stone', 'longexp', 'strobe', 'mirror', 'bhole'];
   const shader = SHADER_FX.filter(f => !['time', 'camera'].includes(f.cat));
   pick(shader.filter(f => !heavy.includes(f.id)), 3).forEach(f => set(f, .35 + r() * .4));
@@ -1140,11 +1296,11 @@ $('#fxRandom').addEventListener('click', () => {
   fxChanged();
   if (!playing && !recording) { if (target === 'all') { t = 0; setPlaying(true); } else setTarget(target); }
 });
-const ts = $('#textStyle'), fo = $('#font'), tfx = $('#textFx'), trd = $('#trDur');
-ts.value = state.textStyle; fo.value = state.font; tfx.checked = state.textFx; trd.value = state.trDur;
+const ts = $('#textStyle'), fo = $('#font'), tmSel = $('#textMode'), trd = $('#trDur');
+ts.value = state.textStyle; fo.value = state.font; tmSel.value = state.textMode; trd.value = state.trDur;
 ts.addEventListener('change', () => { state.textStyle = ts.value; saveSettings(); refreshStill(); });
 fo.addEventListener('change', () => { state.font = fo.value; saveSettings(); ensureFonts().then(refreshStill); });
-tfx.addEventListener('change', () => { state.textFx = tfx.checked; partnerKey = ''; saveSettings(); refreshStill(); });
+tmSel.addEventListener('change', () => { state.textMode = tmSel.value; partnerKey = ''; tLayer.hasPrev = tLayerSub.hasPrev = false; saveSettings(); syncFxUI(); refreshStill(); });
 trd.addEventListener('input', () => { state.trDur = +trd.value; saveSettings(); refreshStill(); });
 
 /* ---------- ratio / quality ---------- */
@@ -1171,6 +1327,7 @@ function buildTimeline() {
   const tl = $('#timeline'); tl.innerHTML = '';
   items().forEach(x => { const i = document.createElement('i'); i.style.flex = x.dur; tl.append(i); });
 }
+const SWATCHES = [['#ffffff', '白'], ['#111111', '黒'], ['#d3a34f', '金'], ['#e2583c', '朱'], ['#ff3cac', 'ピンク'], ['#3ee6ff', '水色'], ['#ffe14d', '黄'], ['#7cff6b', '黄緑']];
 function layCtl(lay, pre, isEnd, show) {
   const det = document.createElement('details'); det.className = 'lay'; det.open = !!lay._open;
   det.addEventListener('toggle', () => { lay._open = det.open; if (det.open) show(); });
@@ -1192,19 +1349,52 @@ function layCtl(lay, pre, isEnd, show) {
     r.addEventListener('input', () => { set(+r.value); o.textContent = fmt(+r.value); show(); refreshStill(); });
     g.append(l, r, o); return () => { r.value = get(); o.textContent = fmt(get()); };
   };
+  const colorRow = (label, id, get, set) => {
+    const row = document.createElement('div'); row.className = 'colrow';
+    const l = document.createElement('label'); l.htmlFor = id; l.textContent = label;
+    const inp = document.createElement('input'); inp.type = 'color'; inp.id = id;
+    inp.addEventListener('input', () => { set(inp.value); mark(); show(); refreshStill(); });
+    const sw = document.createElement('div'); sw.className = 'swatches';
+    const btns = SWATCHES.map(([hex, name]) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'swatch'; b.style.background = hex; b.title = name; b.setAttribute('aria-label', `${label}を${name}にする`);
+      b.addEventListener('click', () => { set(hex); inp.value = hex; mark(); show(); refreshStill(); });
+      sw.append(b); return [hex, b];
+    });
+    const mark = () => { const v = get().toLowerCase(); btns.forEach(([h, b]) => b.setAttribute('aria-pressed', String(h === v))); };
+    row.append(l, inp, sw); g.append(row);
+    return () => { inp.value = get(); mark(); };
+  };
+  const dirRow = (id, get, set) => {
+    const row = document.createElement('div'); row.className = 'colrow';
+    const l = document.createElement('span'); l.textContent = '書き方'; l.style.minWidth = '3em';
+    const sg = document.createElement('div'); sg.className = 'seg mini'; sg.id = id; sg.setAttribute('role', 'group'); sg.setAttribute('aria-label', '書き方');
+    const bs = [['h', '横書き'], ['v', '縦書き']].map(([v, txt]) => {
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = txt;
+      b.addEventListener('click', () => { set(v); mark(); show(); refreshStill(); syncLay(); });
+      sg.append(b); return [v, b];
+    });
+    const mark = () => bs.forEach(([v, b]) => b.setAttribute('aria-pressed', String(get() === v)));
+    row.append(l, sg); g.append(row); return mark;
+  };
   const head = txt => { const h = document.createElement('div'); h.className = 'layhead'; h.textContent = txt; g.append(h); };
   const syncs = [];
   head(isEnd ? '名前・ロゴ文字' : 'キャッチコピー');
+  syncs.push(dirRow(`ld-${pre}`, () => lay.dir || 'h', v => { lay.dir = v; lay.sx = null; lay.sy = null; if (v === 'v' && lay.y == null && !isEnd) lay.y = .5; }));
   g.append(quick);
   syncs.push(
     slider('大きさ', `ls-${pre}`, .4, 2.2, .01, () => lay.s, v => lay.s = v, v => `${Math.round(v * 100)}%`),
+    slider('横幅', `lw-${pre}`, .5, 1.8, .01, () => lay.wx || 1, v => lay.wx = v, v => `${Math.round(v * 100)}%`),
+    slider('高さ', `lh-${pre}`, .5, 1.8, .01, () => lay.hy || 1, v => lay.hy = v, v => `${Math.round(v * 100)}%`),
     slider('横位置', `lx-${pre}`, 0, 1, .005, () => lay.x, v => lay.x = v, v => `${Math.round(v * 100)}`),
-    slider('縦位置', `ly-${pre}`, 0, 1, .005, () => layY(lay, isEnd), v => lay.y = v, v => `${Math.round(v * 100)}`));
+    slider('縦位置', `ly-${pre}`, 0, 1, .005, () => layY(lay, isEnd), v => lay.y = v, v => `${Math.round(v * 100)}`),
+    colorRow('色', `lc-${pre}`, () => lay.col || '#ffffff', v => lay.col = v));
   head(isEnd ? 'サブテキスト（アカウント名など）' : 'サブテキスト');
+  syncs.push(dirRow(`lsd-${pre}`, () => lay.sdir || 'h', v => { lay.sdir = v; lay.sx = null; lay.sy = null; }));
   syncs.push(
     slider('大きさ', `lss-${pre}`, .4, 3, .01, () => lay.ss || 1, v => lay.ss = v, v => `${Math.round(v * 100)}%`),
     slider('横位置', `lsx-${pre}`, 0, 1, .005, () => lay.sx ?? (lay._subAuto ? lay._subAuto[0] : lay.x), v => lay.sx = v, v => `${Math.round(v * 100)}`),
-    slider('縦位置', `lsy-${pre}`, 0, 1, .005, () => lay.sy ?? (lay._subAuto ? lay._subAuto[1] : .5), v => lay.sy = v, v => `${Math.round(v * 100)}`));
+    slider('縦位置', `lsy-${pre}`, 0, 1, .005, () => lay.sy ?? (lay._subAuto ? lay._subAuto[1] : .5), v => lay.sy = v, v => `${Math.round(v * 100)}`),
+    colorRow('色', `lsc-${pre}`, () => lay.scol || '#ffffff', v => lay.scol = v));
   const follow = document.createElement('button'); follow.type = 'button'; follow.className = 'fxbtn'; follow.textContent = 'サブをコピーの近くに戻す';
   follow.addEventListener('click', () => { lay.sx = null; lay.sy = null; show(); refreshStill(); syncLay(); });
   const fw = document.createElement('div'); fw.className = 'layfoot'; fw.append(follow); g.append(fw);
@@ -1221,7 +1411,7 @@ function layCtl(lay, pre, isEnd, show) {
     foot.append(sh, all);
   }
   const reset = document.createElement('button'); reset.type = 'button'; reset.className = 'fxbtn'; reset.textContent = '元に戻す';
-  reset.addEventListener('click', () => { Object.assign(lay, isEnd ? { x: .5, y: null, s: 1, align: 'center', sx: null, sy: null, ss: 1 } : { ...defLay(false) }); const c = document.getElementById(`lsh-${pre}`); if (c) c.checked = true; changed(); });
+  reset.addEventListener('click', () => { Object.assign(lay, isEnd ? { x: .5, y: null, s: 1, align: 'center', sx: null, sy: null, ss: 1, col: '#ffffff', scol: '#ffffff', dir: 'h', sdir: 'h', wx: 1, hy: 1 } : { ...defLay(false) }); const c = document.getElementById(`lsh-${pre}`); if (c) c.checked = true; changed(); });
   foot.append(reset); g.append(foot);
   det.append(g);
   return det;
@@ -1245,7 +1435,7 @@ function buildScenes() {
     const lab = document.createElement('span'); lab.textContent = `シーン ${String(k + 1).padStart(2, '0')}`;
     const icons = document.createElement('div'); icons.className = 'icons';
     const mk = (txt, title, fn, dis) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = txt; b.title = title; b.setAttribute('aria-label', title); b.disabled = dis; b.addEventListener('click', fn); icons.append(b); };
-    const nfx = Object.values(s.fx).filter(x => x.on).length;
+    const nfx = Object.values(s.fx).filter(x => x.on).length + Object.values(s.tfx || {}).filter(x => x.on).length;
     const fb = document.createElement('button'); fb.type = 'button'; fb.className = 'fxbtn' + (nfx || s.useGlobal === false ? ' has' : '');
     fb.textContent = nfx ? `エフェクト ${nfx}` : 'エフェクト'; fb.setAttribute('aria-label', `シーン${k + 1}のエフェクトを設定`);
     fb.addEventListener('click', () => { selectTab(true); setTarget(String(k)); });
@@ -1279,7 +1469,7 @@ function loadImage(file, s) {
   img.src = url;
 }
 function refresh() { partnerKey = ''; buildTargets(); syncFxUI(); buildScenes(); buildTimeline(); t = clamp(t, 0, total() - .001); refreshStill(); }
-$('#addScene').addEventListener('click', () => { state.scenes.push({ text: '新しいコピー', sub: '', dur: 3, img: null, sample: false, thumb: null, fx: {}, useGlobal: true, lay: { ...(state.scenes[state.scenes.length - 1] || {}).lay || defLay(false) } }); refresh(); jumpTo(state.scenes.length - 1); });
+$('#addScene').addEventListener('click', () => { state.scenes.push({ text: '新しいコピー', sub: '', dur: 3, img: null, sample: false, thumb: null, fx: {}, useGlobal: true, tfx: {}, useGlobalT: true, lay: { ...(state.scenes[state.scenes.length - 1] || {}).lay || defLay(false) } }); refresh(); jumpTo(state.scenes.length - 1); });
 
 /* ---------- end + bgm ---------- */
 const eb = $('#endBrand'), es = $('#endSub');
@@ -1508,7 +1698,7 @@ cv.addEventListener('pointerup', endDrag); cv.addEventListener('pointercancel', 
 
 /* ---------- boot ---------- */
 if (!initGL()) { const w = $('#glWarn'); w.textContent = glError; w.hidden = false; }
-setSize(); syncRatio(); buildFxList(); buildTargets(); buildScenes(); buildTimeline();
+setSize(); syncRatio(); syncLayer(); buildFxList(); buildTargets(); buildScenes(); buildTimeline();
 $('#endLayBox').append(layCtl(state.endLay, 'end', true, showEndCard));
 t = 1.8; render();
 ensureFonts().then(() => { render(); setPlaying(true); });
